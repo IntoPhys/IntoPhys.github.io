@@ -9,9 +9,6 @@ class PointVisualization{
 };
 
 class VisualizationBond{
-    static{
-        window.visualizations = Array()
-    }
     constructor(obj, svg){
         if(obj instanceof PointMass){
             this.rendered = new PointVisualization(obj, svg);

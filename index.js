@@ -1,3 +1,5 @@
+window.G = 6.67 * Math.pow(10, -5);
+/*
 window.G = 6.67 * Math.pow(10, -11);
 
 class Simulation{
@@ -190,3 +192,152 @@ document.addEventListener('DOMContentLoaded', ()=>{
     s.addForce(new LowSpeedViscousFrictionStillFluid(s, Math.pow(10, -14)));
     setInterval(()=>{s.update()},1)
 });
+*/
+
+class Force{
+    objects = []//Why array
+    attachObject(obj){
+        this.objects.push(obj);
+    }
+    getForce(obj){
+
+    }
+    getApplicationPoint(obj){
+        return obj.getBody().position;
+    }
+}
+
+class ConstantForce extends Force{
+    constructor(forceX, forceY){
+        super();
+        this.force = Matter.Vector.create(forceX, forceY);
+    };
+    getForce(obj){
+        return this.force;
+    }
+}
+
+class Gravity extends Force{
+    constructor(){
+        super();
+    };
+    getForce(obj){
+        let force = Matter.Vector.create(0, 0);
+        for (let i = 0; i < this.objects.length; i++){
+            if (obj != this.objects[i]){
+                let addForce = Matter.Vector.mult(Matter.Vector.sub(this.objects[i].getBody().position, obj.getBody().position),
+                 G*obj.getBody().mass*this.objects[i].getBody().mass/(Math.pow(Matter.Vector.magnitude(Matter.Vector.sub(this.objects[i].getBody().position, obj.getBody().position)), 3))
+                )
+                force = Matter.Vector.add(force, addForce);
+            }
+        };
+        return force;
+    }
+}
+
+class PhysicalObject{
+    forces = []//Why array
+    constructor(x, y, data, extraOptions = {}){
+        //{type: "polygon", sides: ..., radius: ...}
+        //{type: "circle", radius: ...}
+        //{type: "rectangle", width: ..., height: ...}
+        //{type: "vertices", vertices: ...}
+        // + data.angle
+        this.opt = {
+            friction: 0,
+            frictionStatic: 0,
+            frictionAir: 0,
+            density: 5
+        };
+        Object.assign(this.opt, this.extraOptions);
+        if(data.type === "polygon"){
+            this.body = Matter.Bodies.polygon(x, y, data.sides, data.radius, this.opt)
+        };
+        if(data.type === "circle"){
+            this.body = Matter.Bodies.circle(x, y, data.radius, this.opt)
+        };
+        if(data.type === "rectangle"){
+            this.body = Matter.Bodies.rectangle(x, y, data.width, data.height, this.opt)
+        };
+        if(data.type === "vertices"){
+            this.body = Matter.Bodies.fromVertices(x, y, data.vertices, this.opt)
+        };
+        
+        if(data.angle){
+            Matter.Body.setAngle(this.body, data.angle)
+        };
+        this.body.parentalPhysicalObject = this;
+        this.saveInitial();
+    };
+    attachForce(force){
+        force.attachObject(this);
+        this.forces.push(force);
+    }
+    updateForces(){
+        for (let i = 0; i < this.forces.length; i++){
+            Matter.Body.applyForce(this.body, this.forces[i].getApplicationPoint(this), this.forces[i].getForce(this));
+        };
+    };
+    saveInitial(){
+      this.initialState = {
+          position: this.body.position,
+          angle: this.body.angle,
+          velocity: Matter.Body.getVelocity(this.body),
+          angularVelocity: Matter.Body.getAngularVelocity(this.body),
+      }  
+    };
+    returnToInitial(){
+        if (this.initialState != undefined){
+            Matter.Body.setPosition(this.body, this.initialState.position);
+            Matter.Body.setAngle(this.body, this.initialState.angle);
+            Matter.Body.setVelocity(this.body, this.initialState.velocity);
+            Matter.Body.setAngularVelocity(this.body, this.initialState.angularVelocity)
+        };
+    }
+    addToEngine(engine){
+        Matter.Events.on(engine, "afterUpdate", (event)=>{
+            this.updateForces();
+        });
+        Matter.Composite.add(engine.world, this.body);
+    };
+    getBody(){
+        return this.body;
+    };
+}
+
+// module aliases
+var Engine = Matter.Engine,
+    Render = Matter.Render,
+    Runner = Matter.Runner;
+// create an engine
+var engine = Engine.create();
+engine.gravity.scale = 0;
+
+// create a renderer
+
+var render = Render.create({
+    options: {
+        width : screen.width,
+        height : screen.height
+    },
+    element: document.getElementById("main"),
+    engine: engine,
+});
+
+let f = new Gravity();
+for(let i = 10; i < 800; i = i + 50){
+    for(let j = 10; j < 800; j = j + 50){
+    let a = new PhysicalObject(i, j, {type: "polygon", sides: Math.round(3 + Math.random()*5), radius: 10, angle: Math.random()*360});
+    a.addToEngine(engine);
+    a.attachForce(f);
+    };
+};
+
+// run the renderer
+Render.run(render);
+
+// create runner
+var runner = Runner.create();
+
+// run the engine
+Runner.run(runner, engine);

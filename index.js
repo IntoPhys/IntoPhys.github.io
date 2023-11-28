@@ -1,4 +1,4 @@
-window.G = 6.67 * Math.pow(10, -5);
+window.G = 6.67 * Math.pow(10, -6);
 /*
 window.G = 6.67 * Math.pow(10, -11);
 
@@ -194,6 +194,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 */
 
+window.contextMenu = document.getElementById("contextmenu")
+
 class Force{
     objects = []//Why array
     attachObject(obj){
@@ -280,7 +282,7 @@ class PhysicalObject{
     };
     saveInitial(){
       this.initialState = {
-          position: this.body.position,
+          position: Matter.Vector.create(this.body.position.x, this.body.position.y),
           angle: this.body.angle,
           velocity: Matter.Body.getVelocity(this.body),
           angularVelocity: Matter.Body.getAngularVelocity(this.body),
@@ -298,6 +300,9 @@ class PhysicalObject{
         Matter.Events.on(engine, "afterUpdate", (event)=>{
             this.updateForces();
         });
+        Matter.Events.on(engine, "returnToInitial",(event) => {
+            this.returnToInitial();
+        })
         Matter.Composite.add(engine.world, this.body);
     };
     getBody(){
@@ -310,7 +315,7 @@ var Engine = Matter.Engine,
     Render = Matter.Render,
     Runner = Matter.Runner;
 // create an engine
-var engine = Engine.create();
+window.engine = Engine.create();
 engine.gravity.scale = 0;
 
 // create a renderer
@@ -324,10 +329,17 @@ var render = Render.create({
     engine: engine,
 });
 
+window.center = null
+let fl = true;
 let f = new Gravity();
 for(let i = 10; i < 800; i = i + 50){
     for(let j = 10; j < 800; j = j + 50){
     let a = new PhysicalObject(i, j, {type: "polygon", sides: Math.round(3 + Math.random()*5), radius: 10, angle: Math.random()*360});
+    if(Math.random() > 0.95 && fl){
+        fl = false;
+        Matter.Body.setMass(a.getBody(), 100);
+        center = a.getBody();
+    };
     a.addToEngine(engine);
     a.attachForce(f);
     };
@@ -339,5 +351,22 @@ Render.run(render);
 // create runner
 var runner = Runner.create();
 
+//Developing Controls
+
+let list = document.getElementsByClassName("actbtn");
+for (let btn of list){
+    btn.addEventListener("click", (event)=> {
+        let action = event.target.getAttribute("data-action");
+        if (action === "go-to-start"){
+            Matter.Events.trigger(engine, "returnToInitial", {})
+        }else if(action === "pause"){
+            runner.enabled = false;
+        }else if(action === "play"){
+            runner.enabled = true;
+        };
+    });
+};
+
+Matter.Render.lookAt(render, center);
 // run the engine
 Runner.run(runner, engine);

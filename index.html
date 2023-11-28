@@ -11,6 +11,8 @@
   </head>
   <body>
 
+    <div id = "contextmenu"></div>
+
     <div id="wrapper">
       <div id="topbar">
 
@@ -39,7 +41,12 @@
       </div>
 
       <div id = "bottombar">
-
+        <div style = "margin-right: 0; width: 24px; height: 24px;"></div>
+        <div style="display: flex;flex-direction: row; margin-top: 0px; margin-left: auto;margin-right: auto; min-width: 92px; gap: 10px;">
+          <button data-action = "go-to-start" class = "actbtn" style = "background-image: url(./go-to-start.png);"></button>
+          <button data-action = "pause" class = "actbtn" style = "background-image: url(./pause.png);"></button>
+          <button data-action = "play" class = "actbtn" style = "background-image: url(./play.png);"></button>
+        </div>
       </div>
 
       <div id = "main">

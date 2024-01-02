@@ -1,4 +1,4 @@
-window.G = 6.67 * Math.pow(10, -6);
+window.G = 6.67 * Math.pow(10, -7);
 /*
 window.G = 6.67 * Math.pow(10, -11);
 
@@ -194,7 +194,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 */
 
-window.contextMenu = document.getElementById("contextmenu")
+Matter.Common.setDecomp(decomp);
+
+window.contextMenu = document.getElementById("contextmenu");
+window.RFobject = null;
 
 class Force{
     objects = []//Why array
@@ -219,7 +222,7 @@ class ConstantForce extends Force{
     }
 }
 
-class Gravity extends Force{
+class Gravity extends Force{//TODO: Add torque effect
     constructor(){
         super();
     };
@@ -238,6 +241,7 @@ class Gravity extends Force{
 }
 
 class PhysicalObject{
+    visualizationBond = undefined;
     forces = []//Why array
     constructor(x, y, data, extraOptions = {}){
         //{type: "polygon", sides: ..., radius: ...}
@@ -304,7 +308,11 @@ class PhysicalObject{
             this.returnToInitial();
         })
         Matter.Composite.add(engine.world, this.body);
+        Matter.Events.trigger(engine, "objectAdded", {physicalObject: this})
     };
+    setVisualizationBond(bond){
+        this.visualizationBond = bond;
+    }
     getBody(){
         return this.body;
     };
@@ -320,6 +328,7 @@ engine.gravity.scale = 0;
 
 // create a renderer
 
+/*
 var render = Render.create({
     options: {
         width : screen.width,
@@ -328,13 +337,29 @@ var render = Render.create({
     element: document.getElementById("main"),
     engine: engine,
 });
+*/
 
-window.center = null
+
+
+var renderSVG = SVGRender.create({
+    options: {
+        width : "100%",
+        height : "100%"
+    },
+    element: document.getElementById("main"),
+    engine: engine,
+});
+
+window.center = {x:100, y:100}
 let fl = true;
 let f = new Gravity();
-for(let i = 10; i < 800; i = i + 50){
-    for(let j = 10; j < 800; j = j + 50){
+/*
+for(let i = 10; i < 270; i = i + 80){
+    for(let j = 10; j < 270; j = j + 80){
     let a = new PhysicalObject(i, j, {type: "polygon", sides: Math.round(3 + Math.random()*5), radius: 10, angle: Math.random()*360});
+    if (Math.random() > 0.5){
+        a = new PhysicalObject(i, j, {type: "vertices", vertices: Matter.Vertices.fromPath('50 0 63 38 100 38 69 59 82 100 50 75 18 100 31 59 0 38 37 38')});
+    };
     if(Math.random() > 0.95 && fl){
         fl = false;
         Matter.Body.setMass(a.getBody(), 100);
@@ -344,9 +369,22 @@ for(let i = 10; i < 800; i = i + 50){
     a.attachForce(f);
     };
 };
+*/
+
+a = new PhysicalObject(0, 0, {type: "vertices", vertices: Matter.Vertices.fromPath('50 0 63 38 100 38 69 59 82 100 50 75 18 100 31 59 0 38 37 38')});
+a.addToEngine(engine);
+a.attachForce(f);
+
+b = new PhysicalObject(500, 100, {type: "vertices", vertices: Matter.Vertices.fromPath('40 0 40 20 100 20 100 80 40 80 40 100 0 50')});
+b.addToEngine(engine);
+b.attachForce(f);
+
+c = new PhysicalObject(100, 500, {type: "vertices", vertices: Matter.Vertices.fromPath('100 0 75 50 100 100 25 100 0 50 25 0')});
+c.addToEngine(engine);
+c.attachForce(f);
 
 // run the renderer
-Render.run(render);
+//Render.run(render);
 
 // create runner
 var runner = Runner.create();
@@ -360,6 +398,7 @@ for (let btn of list){
         if (action === "go-to-start"){
             Matter.Events.trigger(engine, "returnToInitial", {})
         }else if(action === "pause"){
+            console.log("paused");
             runner.enabled = false;
         }else if(action === "play"){
             runner.enabled = true;
@@ -367,6 +406,6 @@ for (let btn of list){
     });
 };
 
-Matter.Render.lookAt(render, center);
+//Matter.Render.lookAt(render, center);
 // run the engine
 Runner.run(runner, engine);

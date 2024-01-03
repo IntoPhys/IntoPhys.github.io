@@ -1,4 +1,10 @@
-window.G = 6.67 * Math.pow(10, -7);
+window.G = 6.67 * Math.pow(10,-11);
+window.g_of_planets = {
+    "True Earth equator": 9.8144,
+    "Effective Earth equator": 9.7805,
+    "True Earth pole": 9.8322,
+    "Effective Earth pole": 9.8322
+}
 /*
 window.G = 6.67 * Math.pow(10, -11);
 
@@ -197,7 +203,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 Matter.Common.setDecomp(decomp);
 
 window.contextMenu = document.getElementById("contextmenu");
-window.RFobject = null;
 
 class Force{
     objects = []//Why array
@@ -219,7 +224,17 @@ class ConstantForce extends Force{
     };
     getForce(obj){
         return this.force;
-    }
+    };
+}
+
+class CelestialGravity extends Force{
+    constructor(celestialBody = "True Earth equator"){
+        super();
+        this.acceleration = Matter.Vector.create(0, window.g_of_planets[celestialBody]);
+    };
+    getForce(obj){
+        return Matter.Vector.mult(this.acceleration, obj.getBody().mass);
+    };
 }
 
 class Gravity extends Force{//TODO: Add torque effect
@@ -281,7 +296,7 @@ class PhysicalObject{
     }
     updateForces(){
         for (let i = 0; i < this.forces.length; i++){
-            Matter.Body.applyForce(this.body, this.forces[i].getApplicationPoint(this), this.forces[i].getForce(this));
+            Matter.Body.applyForce(this.body, this.forces[i].getApplicationPoint(this), this.forces[i].getForce(this));//Accounts for inverse coordinates
         };
     };
     saveInitial(){
@@ -320,7 +335,7 @@ class PhysicalObject{
 
 // module aliases
 var Engine = Matter.Engine,
-    Render = Matter.Render,
+    //Render = Matter.Render,
     Runner = Matter.Runner;
 // create an engine
 window.engine = Engine.create();
@@ -350,8 +365,7 @@ var renderSVG = SVGRender.create({
     engine: engine,
 });
 
-window.center = {x:100, y:100}
-let fl = true;
+//let fl = true;
 let f = new Gravity();
 /*
 for(let i = 10; i < 270; i = i + 80){
@@ -387,25 +401,81 @@ c.attachForce(f);
 //Render.run(render);
 
 // create runner
-var runner = Runner.create();
+//var runner = Runner.create();
 
 //Developing Controls
 
-let list = document.getElementsByClassName("actbtn");
-for (let btn of list){
+let btnlist = document.getElementsByClassName("actbtn");
+for (let btn of btnlist){
     btn.addEventListener("click", (event)=> {
         let action = event.target.getAttribute("data-action");
         if (action === "go-to-start"){
-            Matter.Events.trigger(engine, "returnToInitial", {})
+            Matter.Events.trigger(engine, "returnToInitial", {});
+            Matter.Engine.update(engine, 0);
         }else if(action === "pause"){
-            console.log("paused");
-            runner.enabled = false;
+            if (window.simulationLoop){
+                clearInterval(window.simulationLoop)
+            };
+            //console.log("paused");
+            //runner.enabled = false;
         }else if(action === "play"){
-            runner.enabled = true;
+            //runner.enabled = true;
+            var lastUpdate = Date.now();
+            window.simulationLoop = setInterval(() => {
+                let now = Date.now();
+                var dt = now - lastUpdate;
+                lastUpdate = now;
+                Matter.Engine.update(engine, dt/1000);
+            }, 0);
         };
     });
 };
 
+//Creating window controls
+
+console.log($("#main > SVG").eq(0));//JQUERY SVG ELEMENT
+
+$("#simulation").on("mousedown", function (e) {
+    window.mousePosition = [e.offsetX, e.offsetY];
+    window.mouseDown = true;
+    })
+    .on("mousemove", function (e) {
+        let mouseNewPosition = [e.offsetX, e.offsetY];
+        if (window.mouseDown && window.changingCanvas && !window.changingArea) {
+            for(let i = 0; i < window.simulationObjects.length; i++){
+                simulationObjects[i].cx(simulationObjects[i].cx()[0] + mouseNewPosition[0] - window.mousePosition[0]);
+                simulationObjects[i].cy(simulationObjects[i].cy()[0] + mouseNewPosition[1] - window.mousePosition[1]);
+            };
+        };
+        window.mousePosition = mouseNewPosition;
+    })
+    .on("mouseup", function(){
+        window.mouseDown = false;
+    })
+    .on("mousewheel", function(e){
+        let mouseNewPosition = [e.offsetX, e.offsetY];
+        window.mousePosition = mouseNewPosition;
+        console.log(mousePosition)
+        let scale = window.zoomIndex
+        if (e.originalEvent.wheelDelta < 0){
+            scale = 1/scale;
+        };
+        if (window.changingCanvas && !window.changingArea) {
+            for(let i = 0; i < window.simulationObjects.length; i++){
+                window.simulationObjects[i].size(scale*window.simulationObjects[i].width()[0], null);
+                window.simulationObjects[i].cx(window.mousePosition[0] + scale*(window.simulationObjects[i].cx()[0] - window.mousePosition[0]));
+                window.simulationObjects[i].cy(window.mousePosition[1] + scale*(window.simulationObjects[i].cy()[0] - window.mousePosition[1]));
+            };
+        };    
+});
+
+var lastUpdate = Date.now();
+window.simulationLoop = setInterval(() => {
+    let now = Date.now();
+    let dt = now - lastUpdate;
+    lastUpdate = now;
+    Matter.Engine.update(engine, dt/1000);
+}, 0);
 //Matter.Render.lookAt(render, center);
 // run the engine
-Runner.run(runner, engine);
+//Runner.run(runner, engine);

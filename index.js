@@ -158,7 +158,7 @@ var renderSVG = SVGRender.create({
 });
 
 
-let f = new Gravity();
+let f = new CelestialGravity();
 
 a = new PhysicalObject(0, 0, {type: "vertices", vertices: Matter.Vertices.fromPath('50 0 63 38 100 38 69 59 82 100 50 75 18 100 31 59 0 38 37 38')});
 a.addToEngine(engine);
@@ -195,17 +195,23 @@ for (let btn of btnlist){
     });
 };
 
+sel = new SelectionTool(renderSVG);
+sel.activate();
 
-$("#main > SVG").on("mousedown", function (e) {
-        window.mouseDown = true;
+$("#element to navigate").on("mousedown", (e) => {//Deactivated(moved to tools.js)
+        if(e.originalEvent.button === 0){
+            window.mouseDown = true;
+        }
     })
-    .on("mouseup", function(e){
+    .on("mouseup", (e) => {
+        if(e.originalEvent.button === 0){
+            window.mouseDown = false;
+        };
+    })
+    .on("mouseleave", (e) => {
         window.mouseDown = false;
     })
-    .on("mouseleave", function(e){
-        window.mouseDown = false;
-    })
-    .on("mousemove", function (e) {
+    .on("mousemove",  (e) => {
         if (window.mouseDown) {
             let dScreenX = window.mousePosition[0] - e.offsetX;
             let dScreenY = window.mousePosition[1] - e.offsetY;
@@ -213,12 +219,14 @@ $("#main > SVG").on("mousedown", function (e) {
         }
         window.mousePosition = [e.offsetX, e.offsetY];
     })
-    .on("mousewheel", function(e){
-        if (e.originalEvent.wheelDelta < 0){
-            renderSVG.scaleView(1/wheelScaleFactor, e.offsetX, e.offsetY);
-        } else {
-            renderSVG.scaleView(wheelScaleFactor, e.offsetX, e.offsetY);
-        };
+    .on("mousewheel", (e) => {
+        setTimeout(()=>{
+            if (e.originalEvent.wheelDelta < 0){
+                renderSVG.scaleView(1/wheelScaleFactor, e.offsetX, e.offsetY);
+            } else {
+                renderSVG.scaleView(wheelScaleFactor, e.offsetX, e.offsetY);
+            };
+        }, 0);
     });
 
 var lastUpdate = Date.now();

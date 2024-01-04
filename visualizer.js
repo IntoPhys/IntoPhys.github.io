@@ -18,10 +18,13 @@ class SVGRender{//ADD CULLING
         return new SVGRender(obj);
     }
     constructor(obj){
+        this.tools = [];
+
         this.objectToFollow = undefined;//physical object that viewport follows
         this.objectToFollowDeltas = [0, 0];
         this.pointTopLeft = [0, 0];//coordinates in xy that top left angle of the screen corresponds to
         this.scale = 1//is used to transfer coordinates from simulation to window
+        
         this.visualizationBonds = [];
         this.width = obj.options.width;
         this.height = obj.options.height;
@@ -30,7 +33,50 @@ class SVGRender{//ADD CULLING
         this.SVGCanvas.attr({
             width: this.width,
             height: this.height
-        });         
+        });
+
+        this.contextmenuTag = `<div class = "context_menu" style = "display: none; position: absolute;">
+        <label class="menu_button context_menu_button">Первый пункт</label>
+        <label class="menu_button context_menu_button">Второй пункт</label>
+        <label class="menu_button context_menu_button">...</label>
+        <label class="menu_button context_menu_button">Хрен знает какой пункт</label>
+        <label class="menu_button context_menu_button">Ещё один пункт</label>
+        <label class="menu_button context_menu_button">Ещё один пункт</label>
+        <label class="menu_button context_menu_button">Ещё один пункт</label>
+        <label class="menu_button context_menu_button">Ещё один пункт</label>
+        <label class="menu_button context_menu_button">Ещё один пункт</label>
+        </div>
+        `
+
+        this.JQueryElement = $(this.SVGCanvas.node);
+        this.contextmenu = $(this.contextmenuTag).appendTo(this.JQueryElement.parent());
+        this.JQueryElement.on("mousedown", (e) => {
+            if (e.originalEvent.button === 0 || e.originalEvent.button === 1){
+                this.contextmenu.css("display", "none");
+            };
+        });
+        this.contextmenu.on("contextmenu", (e)=>{
+            e.preventDefault();
+        });
+        this.JQueryElement.on("contextmenu", (e)=>{
+            e.preventDefault();
+            this.contextmenu.css("display", "block");
+            if (e.offsetY  + this.contextmenu.height() <= this.JQueryElement.height()){
+                this.contextmenu.css("top", `${e.pageY}px`);
+                this.contextmenu.css("bottom", "unset");
+            }else{
+                this.contextmenu.css("top", "unset");
+                this.contextmenu.css("bottom", `${$("body").height() - (this.JQueryElement.offset().top + this.JQueryElement.height())}px`);//KINDA BUGGY
+            }
+            if (e.offsetX  + this.contextmenu.width() <= this.JQueryElement.width()){
+                this.contextmenu.css("left", `${e.pageX}px`);
+                this.contextmenu.css("right", "unset");
+            }else{
+                this.contextmenu.css("left", "unset");
+                this.contextmenu.css("right", `${$("body").width() - (this.JQueryElement.offset().left + this.JQueryElement.width())}px`);//KINDA BUGGY
+            }
+        });
+
         Matter.Events.on(this.engine, "afterUpdate", (event)=>{
             this.update();
         });
@@ -114,5 +160,28 @@ class SVGRender{//ADD CULLING
         };
         this.scale = 1;
         this.update();
-    }
+    };
+    getObjects(){
+        let objects = [];
+        for (let i in this.visualizationBonds){
+            objects.push(this.visualizationBonds[i].getObjectImagePair().object)
+        };
+        return objects;
+    };
+    getJQuery(){
+        return this.JQueryElement;
+    };
+    getSVGCanvas(){
+        return this.SVGCanvas;
+    };
+    addTool(tool){
+        if(tool instanceof Tool){
+            this.tools.push(tool);
+        };
+    };
+    deactivateTools(){
+        for(let tool in this.tools){
+            this.tools[tool].deactivate();
+        };
+    };
 }

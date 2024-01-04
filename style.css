@@ -52,7 +52,30 @@ body{
     grid-row: 2;
 }
 
+/* Context menu */
+
+.context_menu{
+    padding-left: 3px;
+    background-color: #3b3b3b;
+    width: 200px;
+    border-radius: 2px;    
+}
+
+.context_menu_button{
+    font-size: small;
+    width: 100%;
+    background-color: #3b3b3b;
+    color: white;
+}
+.context_menu_button:hover{
+    background-color: #505050;
+}
+
 /* Bottom menu */
+
+#main{
+    display: block;
+}
 
 #bottombar{
     background-color: #202020;

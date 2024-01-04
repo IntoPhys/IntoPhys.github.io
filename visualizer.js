@@ -79,10 +79,10 @@ class SVGRender{//ADD CULLING
         };
     }
     scaleView(factor, screenX, screenY){
+        this.pointTopLeft[0] += (1 - 1/factor)*screenX/this.scale;
+        this.pointTopLeft[1] += (1 - 1/factor)*screenY/this.scale;
         for (let i = 0; i < this.visualizationBonds.length; i++){
             let img = this.visualizationBonds[i].getObjectImagePair().image;
-            this.pointTopLeft[0] += (1 - 1/factor)*screenX/this.scale;
-            this.pointTopLeft[1] += (1 - 1/factor)*screenY/this.scale;
             img.size(factor*img.width(), null);
         };
         this.scale *= factor;

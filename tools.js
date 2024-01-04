@@ -103,7 +103,7 @@ class SelectionTool extends Tool{
         this.clickTimestamp = undefined;
         this.selectionFrame = undefined;
         this.spaceTolerance = 5; //px - Default value(condition for insta click event)
-        this.timeTolerance = 200; //ms - Default value(condition for insta click event)
+        this.timeTolerance = 50; //ms - Default value(condition for insta click event)
         this.selectionMode = 1// + 1 - adds to selection; -1 - dletes from slection
     };
     getParameters(){

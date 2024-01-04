@@ -195,11 +195,28 @@ for (let btn of btnlist){
     });
 };
 
+nav = new NavigationTool(renderSVG);
+nav.on("activation", () => {
+    $("#navigation").css("background-color", "#414141")
+});
+nav.on("deactivation", () =>{
+    $("#navigation").css("background-color", "#333333")
+});
+$("#navigation").on("click", () => {
+    nav.activate();
+});
 
 sel = new SelectionTool(renderSVG);
-sel.activate();
+sel.on("activation", () => {
+    $("#selection").css("background-color", "#414141")
+});
+sel.on("deactivation", () =>{
+    $("#selection").css("background-color", "#333333")
+});
+$("#selection").on("click", () => {
+    sel.activate();
+});
 
-nav = new NavigationTool(renderSVG);
 nav.activate();
 
 $("#element to navigate").on("mousedown", (e) => {//Deactivated(moved to tools.js)

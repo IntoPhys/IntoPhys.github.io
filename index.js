@@ -195,8 +195,12 @@ for (let btn of btnlist){
     });
 };
 
+
 sel = new SelectionTool(renderSVG);
 sel.activate();
+
+nav = new NavigationTool(renderSVG);
+nav.activate();
 
 $("#element to navigate").on("mousedown", (e) => {//Deactivated(moved to tools.js)
         if(e.originalEvent.button === 0){

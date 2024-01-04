@@ -1,5 +1,6 @@
 class visualizationBond{
     constructor (visualizer, object, image){
+        this.selected = false;
         this.visualizer = visualizer;
         object.setVisualizationBond(this);
         this.image = image;
@@ -11,6 +12,17 @@ class visualizationBond{
             image: this.image
         }
     }
+    select(){
+        this.selected = true;
+        this.visualizer.addSlected(this);
+    }
+    unselect(){
+        this.selected = false;
+        this.visualizer.removeSlected(this);
+    }
+    isSelected(){
+        return this.selected;
+    }
 }
 
 class SVGRender{//ADD CULLING
@@ -18,7 +30,9 @@ class SVGRender{//ADD CULLING
         return new SVGRender(obj);
     }
     constructor(obj){
+
         this.tools = [];
+        this.selected = [];//VisualizationBonds, containing objects that tools act on
 
         this.objectToFollow = undefined;//physical object that viewport follows
         this.objectToFollowDeltas = [0, 0];
@@ -161,10 +175,15 @@ class SVGRender{//ADD CULLING
         this.scale = 1;
         this.update();
     };
-    getObjects(){
+    getVisualizationBonds(){
+        return this.visualizationBonds;
+    };
+    getSlectedObjects(){
         let objects = [];
         for (let i in this.visualizationBonds){
-            objects.push(this.visualizationBonds[i].getObjectImagePair().object)
+            if (this.visualizationBonds[i].isSelected()){
+                objects.push(this.visualizationBonds[i].getObjectImagePair().object);
+            };
         };
         return objects;
     };
@@ -179,9 +198,22 @@ class SVGRender{//ADD CULLING
             this.tools.push(tool);
         };
     };
-    deactivateTools(){
-        for(let tool in this.tools){
-            this.tools[tool].deactivate();
+    deactivateOtherTools(tool){
+        for(let i in this.tools){
+            if(this.tools[i] != tool){
+                this.tools[i].deactivate();
+            };
+        };
+    };
+    addSlected(obj){
+        if(this.selected.indexOf(obj) === -1){
+            this.selected.push(obj);
+        };
+    };
+    removeSlected(obj){
+        let index = this.selected.indexOf(obj);
+        if (index != -1){
+            this.selected.splice(index, 1);
         };
     };
 }

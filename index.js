@@ -7,6 +7,8 @@ window.g_of_planets = {
 }
 const wheelScaleFactor = 1.1;
 
+decomp.quickDecomp = decomp.decomp;
+
 Matter.Common.setDecomp(decomp);
 
 window.contextMenu = document.getElementById("contextmenu");
@@ -63,19 +65,23 @@ class Gravity extends Force{//TODO: Add torque effect
 }
 
 class PhysicalObject{
-    visualizationBond = undefined;
-    forces = []//Why array
     constructor(x, y, data, extraOptions = {}){
         //{type: "polygon", sides: ..., radius: ...}
         //{type: "circle", radius: ...}
         //{type: "rectangle", width: ..., height: ...}
         //{type: "vertices", vertices: ...}
         // + data.angle
+
+        this.visualizationBond = undefined;
+
+        this.forces = [];//Why array
+
         this.opt = {
             friction: 0,
             frictionStatic: 0,
             frictionAir: 0,
-            density: 5
+            density: 5,
+            color: "#D3B0FF"
         };
         Object.assign(this.opt, this.extraOptions);
         if(data.type === "polygon"){

@@ -1,9 +1,10 @@
 class visualizationBond{
-    constructor (visualizer, object, image){
+    constructor (visualizer, object, image, outlineObjects){
         this.selected = false;
         this.visualizer = visualizer;
         object.setVisualizationBond(this);
         this.image = image;
+        this.outlineObjects = outlineObjects;//SVG collection
         this.object = object;
     }
     getObjectImagePair(){
@@ -11,18 +12,21 @@ class visualizationBond{
             object: this.object,
             image: this.image
         }
-    }
+    };
+    getOutlineObjects(){
+        return this.outlineObjects;
+    };
     select(){
         this.selected = true;
         this.visualizer.addSlected(this);
-    }
+    };
     unselect(){
         this.selected = false;
         this.visualizer.removeSlected(this);
-    }
+    };
     isSelected(){
         return this.selected;
-    }
+    };
 }
 
 class SVGRender{//ADD CULLING
@@ -33,6 +37,9 @@ class SVGRender{//ADD CULLING
 
         this.tools = [];
         this.selected = [];//VisualizationBonds, containing objects that tools act on
+        this.selectionColor = "yellow";//Color of outline of any selected object
+        this.selectionWidth = 3;
+        this.selectionOpacity = 0.9;
 
         this.objectToFollow = undefined;//physical object that viewport follows
         this.objectToFollowDeltas = [0, 0];
@@ -98,27 +105,32 @@ class SVGRender{//ADD CULLING
             this.addObject(event.physicalObject);
         });
     }
-    addObject(physicalObject){
+    addObject(physicalObject) {
         let xPosition = physicalObject.getBody().position.x;
         let yPosition = physicalObject.getBody().position.y;
         let objParts = physicalObject.getBody().parts;
         let SVGObject = this.SVGCanvas.group();
-        for(let i = 0; i < objParts.length; i++){
-            if(i === 0 && objParts.length > 1){
+        let color = physicalObject.opt.color;
+        for (let i = 0; i < objParts.length; i++) {
+            if (i === 0 && objParts.length > 1) {
                 continue;
             };
-            let objPartVertices = physicalObject.getBody().parts[i].vertices;
+            let objPartVertices = objParts[i].vertices;
             let vertices = [];
-            for (let i = 0; i < objPartVertices.length; i++){
+            for (let i = 0; i < objPartVertices.length; i++) {
                 vertices.push(objPartVertices[i].x - xPosition, objPartVertices[i].y - yPosition);
             };
-            SVGObject.polygon(vertices).fill("#D3B0FF").stroke("#D3B0FF");
+            SVGObject.polygon(vertices).fill(color).stroke(color);
         };
         SVGObject.cx(this.scale*(xPosition - this.pointTopLeft[0]));
         SVGObject.cy(this.scale*(yPosition - this.pointTopLeft[1]));
-        let bond = new visualizationBond(this, physicalObject, SVGObject);
+        let outlineObjects = SVGObject.children();
+        let SVGObjectFront = SVGObject.clone();
+        SVGObject.put(SVGObjectFront);
+        let bond = new visualizationBond(this, physicalObject, SVGObject, outlineObjects);
         this.visualizationBonds.push(bond);
     };
+     
     addVisualizationBond(bond){
         this.visualizationBonds.push(bond);
     };
@@ -207,12 +219,14 @@ class SVGRender{//ADD CULLING
     };
     addSlected(obj){
         if(this.selected.indexOf(obj) === -1){
+            obj.getOutlineObjects().stroke({ color: this.selectionColor, opacity: this.selectionOpacity, width: this.selectionWidth});
             this.selected.push(obj);
         };
     };
     removeSlected(obj){
         let index = this.selected.indexOf(obj);
         if (index != -1){
+            obj.getOutlineObjects().stroke("none");
             this.selected.splice(index, 1);
         };
     };

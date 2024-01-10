@@ -44,9 +44,22 @@ body{
 /* Toolbox */
 
 .toolbtn{
+    display: block;
+}
+
+.toolicon{
     background-color: #333333;
     margin-bottom: 3px;
     border-radius: 3px;
+}
+
+.toolcontainer{
+    position: absolute;
+    display: block;
+    padding-left: 3px;
+    background-color: #333333;
+    width: 100px;
+    border-radius: 2px;
 }
 
 #toolbar{

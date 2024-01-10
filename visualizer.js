@@ -38,8 +38,9 @@ class SVGRender{//ADD CULLING
         this.tools = [];
         this.selected = [];//VisualizationBonds, containing objects that tools act on
         this.selectionColor = "yellow";//Color of outline of any selected object
-        this.selectionWidth = 3;
+        this.selectionWidth = 1;
         this.selectionOpacity = 0.9;
+        this.infrontElementSelectionOpacity = 0.6;
 
         this.objectToFollow = undefined;//physical object that viewport follows
         this.objectToFollowDeltas = [0, 0];
@@ -120,13 +121,15 @@ class SVGRender{//ADD CULLING
             for (let i = 0; i < objPartVertices.length; i++) {
                 vertices.push(objPartVertices[i].x - xPosition, objPartVertices[i].y - yPosition);
             };
-            SVGObject.polygon(vertices).fill(color).stroke(color);
+            SVGObject.polygon(vertices).fill(color).stroke(color).opacity(physicalObject.opt.opacity);
         };
         SVGObject.cx(this.scale*(xPosition - this.pointTopLeft[0]));
         SVGObject.cy(this.scale*(yPosition - this.pointTopLeft[1]));
         let outlineObjects = SVGObject.children();
         let SVGObjectFront = SVGObject.clone();
         SVGObject.put(SVGObjectFront);
+        outlineObjects.stroke({ color: this.selectionColor, width: this.selectionWidth}).fill(this.selectionColor);
+        outlineObjects.opacity(0);
         let bond = new visualizationBond(this, physicalObject, SVGObject, outlineObjects);
         this.visualizationBonds.push(bond);
     };
@@ -219,14 +222,16 @@ class SVGRender{//ADD CULLING
     };
     addSlected(obj){
         if(this.selected.indexOf(obj) === -1){
-            obj.getOutlineObjects().stroke({ color: this.selectionColor, opacity: this.selectionOpacity, width: this.selectionWidth});
+            obj.getObjectImagePair().image.children().opacity(this.infrontElementSelectionOpacity);
+            obj.getOutlineObjects().opacity(this.selectionOpacity);
             this.selected.push(obj);
         };
     };
     removeSlected(obj){
         let index = this.selected.indexOf(obj);
         if (index != -1){
-            obj.getOutlineObjects().stroke("none");
+            obj.getObjectImagePair().image.children().opacity(this.getObjectImagePair.object.opt.opacity);
+            obj.getOutlineObjects().opacity(0);
             this.selected.splice(index, 1);
         };
     };

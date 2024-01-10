@@ -43,6 +43,13 @@ class Tool{
             };        
         };
     };
+    getIcon(){
+        return "icons/tools/unknown.png";
+
+    };
+    getDescription(){
+        return "No description yet";
+    };
 };
 class NavigationTool extends Tool{
     constructor (visualizer){
@@ -94,6 +101,12 @@ class NavigationTool extends Tool{
         super.deactivate();
         this.visualizer.getJQuery().off(".navigation");
     };
+    getIcon(){
+        return "./icons/tools/navigation.png";;
+    };
+    getDescription(){
+        return "Инструмент для перемещения по рабочей области";
+    };
 }
 
 class SelectionTool extends Tool{
@@ -143,7 +156,6 @@ class SelectionTool extends Tool{
                     if (this.BBIntersection(BBTopLeft, BBRightBottom, [bbox.x, bbox.y], [bbox.x2, bbox.y2])){
                         if(this.selectionMode === 1){
                             bonds[i].select();
-                            console.log(bonds[i]);
                         }else if(this.selectionMode === -1){
                             bonds[i].unselect()
                         };  
@@ -188,5 +200,15 @@ class SelectionTool extends Tool{
     deactivate(){
         super.deactivate();
         this.visualizer.getJQuery().off(".selection");
+    };
+    getIcon(){
+        return "./icons/tools/selection.png";
+    };
+    getDescription(){
+        if (this.selectionMode === 1){
+            return "Выделить объект/объекты";
+        }else if (this.selectionMode === -1){
+            return "Снять выделение с объекта/объектов"
+        };
     };
 }

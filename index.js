@@ -81,7 +81,8 @@ class PhysicalObject{
             frictionStatic: 0,
             frictionAir: 0,
             density: 5,
-            color: "#D3B0FF"
+            color: "#D3B0FF",
+            opacity: 1
         };
         Object.assign(this.opt, this.extraOptions);
         if(data.type === "polygon"){
@@ -200,6 +201,30 @@ for (let btn of btnlist){
         };
     });
 };
+
+nav = new NavigationTool(renderSVG);
+sel_plus = new SelectionTool(renderSVG);
+sel_minus = new SelectionTool(renderSVG);
+sel_minus.selectionMode = -1;
+//Creating tool interface
+const tagDataToolNameReferance = {
+    "navigation": [nav],
+    "selection": [sel_plus, sel_minus]
+};
+const BRTolerance = [5, 5];//Determines how much space is provided to multitool selection in bottom right corner
+const timeTolerance = 4;//Determines how much time
+let toolButtons = $(".toolbtn");
+for(let i = 0; i < toolButtons.length; i++){
+    let btn = toolButtons.eq(i);
+    let tools = tagDataToolNameReferance[btn.attr("data-tool")];
+    if (tools === undefined || tools.length === 0){
+        continue;
+    };
+    btn.find(".toolicon").attr("src", tools[0].getIcon());
+    let toolContainer = $("<div class = \"toolcontainer\"></div>");
+    toolContainer.appendTo(btn);
+}
+//End of creating tool interface
 
 nav = new NavigationTool(renderSVG);
 nav.on("activation", () => {

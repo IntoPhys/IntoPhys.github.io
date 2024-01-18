@@ -230,7 +230,7 @@ class SVGRender{//ADD CULLING
     removeSlected(obj){
         let index = this.selected.indexOf(obj);
         if (index != -1){
-            obj.getObjectImagePair().image.children().opacity(this.getObjectImagePair.object.opt.opacity);
+            obj.getObjectImagePair().image.children().opacity(obj.getObjectImagePair().object.opt.opacity);
             obj.getOutlineObjects().opacity(0);
             this.selected.splice(index, 1);
         };

@@ -44,6 +44,9 @@ body{
 /* Toolbox */
 
 .toolbtn{
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
     display: block;
 }
 
@@ -58,8 +61,28 @@ body{
     display: block;
     padding-left: 3px;
     background-color: #333333;
-    width: 100px;
+    width: 250px;
+    min-height: 1px;
     border-radius: 2px;
+}
+
+.tooldescription{
+    display: flex;
+    flex-direction: row;
+    font-size: small;
+    width: 100%;
+    min-height:24px;
+    background-color: #333333;
+    color: white;
+}
+
+.tooldescription > p {
+    margin: 0px;
+    font-size: 12px;
+}
+
+.tooldescription:hover{
+    background-color: #414141;
 }
 
 #toolbar{

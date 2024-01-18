@@ -9,9 +9,9 @@
    id="svg1"
    inkscape:version="1.3 (0e150ed6c4, 2023-07-21)"
    sodipodi:docname="selection.svg"
-   inkscape:export-filename="selection.png"
-   inkscape:export-xdpi="384"
-   inkscape:export-ydpi="384"
+   inkscape:export-filename="selection_minus.png"
+   inkscape:export-xdpi="438.69675"
+   inkscape:export-ydpi="438.69675"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -26,17 +26,32 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
-     inkscape:zoom="7.2551065"
-     inkscape:cx="-1.6540074"
-     inkscape:cy="16.471157"
+     inkscape:zoom="14.510213"
+     inkscape:cx="8.9592069"
+     inkscape:cy="10.785507"
      inkscape:window-width="1360"
      inkscape:window-height="705"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="g9" />
   <defs
      id="defs1">
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect12"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect10"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect7"
+       is_visible="true"
+       lpeversion="1" />
     <marker
        style="overflow:visible"
        id="ArrowTriangleStylized"
@@ -56,6 +71,11 @@
          d="m 6,0 c -3,1 -7,3 -9,5 0,0 0,-4 2,-5 -2,-1 -2,-5 -2,-5 2,2 6,4 9,5 z"
          id="path4" />
     </marker>
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect7-2"
+       is_visible="true"
+       lpeversion="1" />
   </defs>
   <g
      inkscape:label="Слой 1"
@@ -72,5 +92,38 @@
        style="fill:none;stroke:#ffffff;stroke-width:0.224417;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowTriangleStylized)"
        d="M 6.0036818,6.0720565 5.0209689,5.0511274"
        id="path1" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Слой 2"
+     style="display:none">
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 3.6833251,4.0297766 3.66509,5.3973478"
+       id="path7"
+       inkscape:path-effect="#path-effect7"
+       inkscape:original-d="M 3.6833251,4.0297766 3.66509,5.3973478"
+       transform="translate(-0.07293713,-1.3311026)" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 3.6833251,4.0297766 3.66509,5.3973478"
+       id="path7-5"
+       inkscape:path-effect="#path-effect7-2"
+       inkscape:original-d="M 3.6833251,4.0297766 3.66509,5.3973478"
+       transform="rotate(-90,2.9825554,4.0925306)" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="g9"
+     inkscape:label="Копия Слой 2"
+     style="display:inline">
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 3.6833251,4.0297766 3.66509,5.3973478"
+       id="path9"
+       inkscape:path-effect="#path-effect12"
+       inkscape:original-d="M 3.6833251,4.0297766 3.66509,5.3973478"
+       transform="rotate(-90,3.0281411,4.3569277)" />
   </g>
 </svg>

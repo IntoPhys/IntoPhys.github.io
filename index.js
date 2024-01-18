@@ -150,6 +150,7 @@ class PhysicalObject{
 // module aliases
 var Engine = Matter.Engine;
 
+$(document).on("contextmenu", (e)=>{e.preventDefault();});
 
 window.engine = Engine.create();
 engine.gravity.scale = 0;
@@ -165,17 +166,17 @@ var renderSVG = SVGRender.create({
 });
 
 
-let f = new CelestialGravity();
+let f = new Gravity();
 
-a = new PhysicalObject(0, 0, {type: "vertices", vertices: Matter.Vertices.fromPath('50 0 63 38 100 38 69 59 82 100 50 75 18 100 31 59 0 38 37 38')});
+a = new PhysicalObject(0, 0, {type: "polygon", sides:7, radius: 80});
 a.addToEngine(engine);
 a.attachForce(f);
 
-b = new PhysicalObject(500, 100, {type: "vertices", vertices: Matter.Vertices.fromPath('40 0 40 20 100 20 100 80 40 80 40 100 0 50')});
+b = new PhysicalObject(500, 100, {type: "polygon", sides:9, radius: 10});
 b.addToEngine(engine);
 b.attachForce(f);
 
-c = new PhysicalObject(100, 500, {type: "vertices", vertices: Matter.Vertices.fromPath('100 0 75 50 100 100 25 100 0 50 25 0')});
+c = new PhysicalObject(100, 500, {type: "polygon", sides:3, radius: 30});
 c.addToEngine(engine);
 c.attachForce(f);
 
@@ -211,8 +212,12 @@ const tagDataToolNameReferance = {
     "navigation": [nav],
     "selection": [sel_plus, sel_minus]
 };
+const selectedTools = {
+    "navigation": 0,
+    "selection": 0
+};
 const BRTolerance = [5, 5];//Determines how much space is provided to multitool selection in bottom right corner
-const timeTolerance = 4;//Determines how much time
+const timeTolerance = 500;//Determines how much time
 let toolButtons = $(".toolbtn");
 for(let i = 0; i < toolButtons.length; i++){
     let btn = toolButtons.eq(i);
@@ -220,66 +225,86 @@ for(let i = 0; i < toolButtons.length; i++){
     if (tools === undefined || tools.length === 0){
         continue;
     };
-    btn.find(".toolicon").attr("src", tools[0].getIcon());
+    btn.find(".toolicon").attr("src", tools[selectedTools[btn.attr("data-tool")]].getIcon()).attr("draggable", "false");
     let toolContainer = $("<div class = \"toolcontainer\"></div>");
-    toolContainer.appendTo(btn);
-}
-//End of creating tool interface
-
-nav = new NavigationTool(renderSVG);
-nav.on("activation", () => {
-    $("#navigation").css("background-color", "#414141")
-});
-nav.on("deactivation", () =>{
-    $("#navigation").css("background-color", "#333333")
-});
-$("#navigation").on("click", () => {
-    nav.activate();
-});
-
-sel = new SelectionTool(renderSVG);
-sel.on("activation", () => {
-    $("#selection").css("background-color", "#414141")
-});
-sel.on("deactivation", () =>{
-    $("#selection").css("background-color", "#333333")
-});
-$("#selection").on("click", () => {
-    sel.activate();
-});
-
-nav.activate();
-
-$("#element to navigate").on("mousedown", (e) => {//Deactivated(moved to tools.js)
-        if(e.originalEvent.button === 0){
-            window.mouseDown = true;
-        }
-    })
-    .on("mouseup", (e) => {
-        if(e.originalEvent.button === 0){
-            window.mouseDown = false;
-        };
-    })
-    .on("mouseleave", (e) => {
-        window.mouseDown = false;
-    })
-    .on("mousemove",  (e) => {
-        if (window.mouseDown) {
-            let dScreenX = window.mousePosition[0] - e.offsetX;
-            let dScreenY = window.mousePosition[1] - e.offsetY;
-            renderSVG.moveView(dScreenX, dScreenY);
-        }
-        window.mousePosition = [e.offsetX, e.offsetY];
-    })
-    .on("mousewheel", (e) => {
-        setTimeout(()=>{
-            if (e.originalEvent.wheelDelta < 0){
-                renderSVG.scaleView(1/wheelScaleFactor, e.offsetX, e.offsetY);
-            } else {
-                renderSVG.scaleView(wheelScaleFactor, e.offsetX, e.offsetY);
-            };
-        }, 0);
+    toolContainer.css({"top":btn.offset().top,"left":btn.offset().left + btn.width()});
+    $(document).on("resize", ()=>{
+        toolContainer.css({"top":btn.offset().top,"left":btn.offset().left + btn.width()});
     });
+    btn.on("mousedown", (e)=>{
+        if(e.originalEvent.button === 0){
+            if(btn.width() - e.originalEvent.offsetX <= BRTolerance[0] && btn.height() - e.originalEvent.offsetY <= BRTolerance[1]){
+                $(".toolbtn > .toolcontainer").hide();
+                descriptions = toolContainer.find(".tooldescription");
+                for (let i = 0;i < descriptions.length;i++){
+                    if(i === selectedTools[btn.attr("data-tool")]){
+                        descriptions.css("background-color", "#333333");
+                        descriptions.eq(i).css("background-color", "#414141");
+                    };
+                };
+                toolContainer.show();
+            };
+            btn.LMBClickTimeout = setTimeout(()=>{
+                $(".toolbtn > .toolcontainer").hide();
+                descriptions = toolContainer.find(".tooldescription");
+                for (let i = 0;i < descriptions.length;i++){
+                    if(i === selectedTools[btn.attr("data-tool")]){
+                        descriptions.css("background-color", "#333333");
+                        descriptions.eq(i).css("background-color", "#414141");
+                    };
+                };
+                toolContainer.show();
+            }, timeTolerance);
+        };
+        if(e.originalEvent.button === 2){
+            $(".toolbtn > .toolcontainer").hide();
+            descriptions = toolContainer.find(".tooldescription");
+            for (let i = 0;i < descriptions.length;i++){
+                if(i === selectedTools[btn.attr("data-tool")]){
+                    descriptions.css("background-color", "#333333");
+                    descriptions.eq(i).css("background-color", "#414141");
+                };
+            };
+            toolContainer.show();
+        };
+    });
+    btn.on("mouseup", (e)=>{
+        if(e.originalEvent.button === 0 && btn.LMBClickTimeout){
+            clearTimeout(btn.LMBClickTimeout);
+            if (toolContainer.is(":hidden")){
+                //activated if click has happened, but tool selection dialog has been activated
+                $(".toolbtn > .toolicon").css("background-color", "#333333");
+                btn.find(".toolicon").css("background-color", "#414141");
+                tools[selectedTools[btn.attr("data-tool")]].activate();
+            };
+        }
+    })
+    for(let i = 0; i < tools.length; i++){
+        let toolDescription = $(`
+        <div class = "tooldescription">
+            <img style = "width: 24px; height: 24px;" src = ${tools[i].getIcon()}>
+            <p>${tools[i].getDescription()}</p>
+        </div>`);
+        toolContainer.append(toolDescription);
+        toolDescription.on("click", () => {
+            //TODO
+            tools[i].activate();
+            toolContainer.hide();
+        });//selecting specific tool
+        tools[i].on("activation", ()=>{
+            $(".toolbtn > .toolicon").css("background-color", "#333333");
+            btn.find(".toolicon").css("background-color", "#414141");
+            $(".tooldescription").css("background-color", "#333333");
+            toolDescription.css("background-color", "#414141");
+            selectedTools[btn.attr("data-tool")] = i;
+            btn.find(".toolicon").attr("src", tools[i].getIcon());
+        });
+    };
+    toolContainer.on("mouseleave", ()=>{toolContainer.hide();});
+    toolContainer.appendTo(btn);
+    toolContainer.hide();
+};
+
 
 var lastUpdate = Date.now();
 window.simulationLoop = setInterval(() => {

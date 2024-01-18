@@ -1,4 +1,9 @@
 //TOOLS CAN NOT CONTAIN SIMILAR EVENT NAMESPACES
+//HOTKEYS ARE NOT OPTIMAL
+//HOTKEYS
+//N, n - navigate
+//S, s - select
+//U, u - unselect
 class Tool{
     constructor (visualizer){
         this.visualizer = visualizer;
@@ -6,7 +11,7 @@ class Tool{
         this.activationHandlers = [];
         this.deactivationHandlers = [];
     };
-    getParameters(){
+    getParameters(){//rudimentary
         return []
     };
     activate(){
@@ -56,6 +61,11 @@ class NavigationTool extends Tool{
         super(visualizer);
         this.mouseDown = false
         this.wheelScaleFactor = 1.1;//default value
+        $(document).on("keyup", (e)=>{
+            if (e.originalEvent.key === "n" || e.originalEvent.key === "N"){
+                this.activate();
+            };
+        });
     };
     getParameters(){
         return [[(v) => {this.wheelScaleFactor = v}, "wheelScaleFactor (1;+inf)"],
@@ -107,7 +117,7 @@ class NavigationTool extends Tool{
     getDescription(){
         return "Инструмент для перемещения по рабочей области";
     };
-}
+};
 
 class SelectionTool extends Tool{
     constructor (visualizer){
@@ -118,6 +128,13 @@ class SelectionTool extends Tool{
         this.spaceTolerance = 5; //px - Default value(condition for insta click event)
         this.timeTolerance = 50; //ms - Default value(condition for insta click event)
         this.selectionMode = 1// + 1 - adds to selection; -1 - dletes from slection
+        $(document).on("keyup", (e)=>{
+            if (this.selectionMode === 1 && (e.originalEvent.key === "s" || e.originalEvent.key === "S")){
+                this.activate();
+            }else if (this.selectionMode === -1 && (e.originalEvent.key === "u" || e.originalEvent.key === "U")){
+                this.activate();
+            };
+        });
     };
     getParameters(){
         return [[(v) => {this.spaceTolerance = v}, "spaceTolerance (0;+inf) px - Default value(condition for insta click event)"],
@@ -202,7 +219,111 @@ class SelectionTool extends Tool{
         this.visualizer.getJQuery().off(".selection");
     };
     getIcon(){
-        return "./icons/tools/selection.png";
+        if (this.selectionMode === 1){
+            return "./icons/tools/selection_plus.png";
+        }else if (this.selectionMode === -1){
+            return "./icons/tools/selection_minus.png";
+        }else{
+            return "./icons/tools/selection.png";
+        }
+    };
+    getDescription(){
+        if (this.selectionMode === 1){
+            return "Выделить объект/объекты";
+        }else if (this.selectionMode === -1){
+            return "Снять выделение с объекта/объектов"
+        };
+    };
+};
+
+//TODO
+class CreationTool extends Tool{
+    constructor (visualizer){
+        super(visualizer);
+        $(document).on("keyup", (e)=>{
+            if (this.selectionMode === 1 && (e.originalEvent.key === "s" || e.originalEvent.key === "S")){
+                this.activate();
+            }else if (this.selectionMode === -1 && (e.originalEvent.key === "u" || e.originalEvent.key === "U")){
+                this.activate();
+            };
+        });
+    };
+    activate(){
+        this.visualizer.deactivateOtherTools(this);
+        //MOUSEUP OUTSIDE OF SVG BUG PRESENT
+        this.visualizer.getJQuery().on("mousedown.selection", (e) => {
+            this.clickTimestamp = e.timeStamp;
+            if(e.originalEvent.button === 0){
+                this.mouseDown = true;
+            };
+            this.mouseDownPosition = [e.offsetX, e.offsetY];
+        })
+        .on("mouseup.selection", (e) => {
+            this.mouseDown = false;
+            if(this.selectionFrame){
+                let BBTopLeft = [this.selectionFrame.attr("x"), this.selectionFrame.attr("y")];
+                let BBRightBottom = [BBTopLeft[0] + this.selectionFrame.attr("width"), BBTopLeft[1] + this.selectionFrame.attr("height")];
+                this.selectionFrame.remove();
+                this.selectionFrame = undefined;
+                let bonds = this.visualizer.getVisualizationBonds();
+                for (let i in bonds){
+                    let bbox = bonds[i].getObjectImagePair().image.bbox();
+                    if (this.BBIntersection(BBTopLeft, BBRightBottom, [bbox.x, bbox.y], [bbox.x2, bbox.y2])){
+                        if(this.selectionMode === 1){
+                            bonds[i].select();
+                        }else if(this.selectionMode === -1){
+                            bonds[i].unselect()
+                        };  
+                    };
+                };
+            }else{
+                let bonds = this.visualizer.getVisualizationBonds();
+                for (let i in bonds){
+                    if (bonds[i].getObjectImagePair().image.inside(this.mouseDownPosition[0], this.mouseDownPosition[1])){
+                        if(this.selectionMode === 1){
+                                bonds[i].select();
+                        }else if(this.selectionMode === -1){
+                            bonds[i].unselect()
+                        };
+                    };//Does not consider parental position
+                    //Can not be terminated, because considers only bounding boxes
+                };
+            };
+        })
+        .on("mousemove.selection", (e) => {
+            if (this.mouseDown && (e.timeStamp - this.clickTimestamp > this.timeTolerance && Math.hypot(e.offsetX - this.mouseDownPosition[0], e.offsetY - this.mouseDownPosition[1]) > this.spaceTolerance)){
+                if(! this.selectionFrame){
+                    this.selectionFrame = this.visualizer.getSVGCanvas().rect(1, 1).fill('none').attr({
+                        "stroke":"white",
+                        "stroke-linecap":"round",
+                        "stroke-width": 1,
+                        "stroke-dasharray":"3,3"
+                    }).move(this.mouseDownPosition[0], this.mouseDownPosition[1]);
+                };
+            };
+            if(this.mouseDown && this.selectionFrame){
+                this.selectionFrame.attr({
+                    "x": Math.min(e.offsetX, this.mouseDownPosition[0]),
+                    "y": Math.min(e.offsetY, this.mouseDownPosition[1]),
+                    "height": Math.abs(e.offsetY - this.mouseDownPosition[1]),
+                    "width": Math.abs(e.offsetX - this.mouseDownPosition[0]),
+                });
+            };
+        });
+        super.activate();
+    };
+    deactivate(){
+        super.deactivate();
+        this.visualizer.getJQuery().off(".selection");
+    };
+    getIcon(){
+        if (this.selectionMode === 1){
+            return "./icons/tools/selection_plus.png";
+        }else if (this.selectionMode === -1){
+            return "./icons/tools/selection_minus.png";
+        }else{
+            return "./icons/tools/selection.png";
+        }
     };
     getDescription(){
         if (this.selectionMode === 1){

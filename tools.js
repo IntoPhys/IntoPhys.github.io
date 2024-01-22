@@ -4,6 +4,7 @@
 //N, n - navigate
 //S, s - select
 //U, u - unselect
+//C, c - create
 class Tool{
     constructor (visualizer){
         this.visualizer = visualizer;
@@ -237,99 +238,233 @@ class SelectionTool extends Tool{
 };
 
 //TODO
-class CreationTool extends Tool{
+class PolygonCreationTool extends Tool{
     constructor (visualizer){
         super(visualizer);
+
+        this.style = {
+            pointColor: "white",
+            pointImpossibleColor: "red",
+            pointSize: 5,
+            pointCursorStroke: 1,
+            lineSize: 3,
+            lineColor: "white",
+            backgroundColor: "black",
+            backgroundOpacity: 0.6
+        };
+
+        //Declaring background
+        this.TopLeft = [0, 0];
+        this.BottomRight = [0, 0];
+        this.SVGBackground = this.visualizer.getSVGCanvas().rect(0, 0).fill({color: this.style.backgroundColor, opacity: this.style.backgroundOpacity}).stroke("none");
+        this.SVGBackground.hide();
+
+        //Declaring special mouse cursor
+        this.mousePosition = [0, 0];
+        this.SVGMouse = this.visualizer.getSVGCanvas().circle(this.style.pointSize).fill("none").stroke({width: this.style.pointCursorStroke , color: this.pointColor}).cx(this.mousePosition[0]).cy(this.mousePosition[1]);
+        this.SVGMouse.hide();
+        
+        this.isCreating = false;
+        this.positionTolerance = [5, 5];//Tolerance of clicking a point
+        this.points = [];
+        this.pointsSVG = [];
+        this.lines = [];
         $(document).on("keyup", (e)=>{
-            if (this.selectionMode === 1 && (e.originalEvent.key === "s" || e.originalEvent.key === "S")){
-                this.activate();
-            }else if (this.selectionMode === -1 && (e.originalEvent.key === "u" || e.originalEvent.key === "U")){
+            if (e.originalEvent.key === "c" || e.originalEvent.key === "C"){
                 this.activate();
             };
         });
+        this.visualizer.on("moveview", (dx, dy) => {this.movePoints(dx, dy)});
+        this.visualizer.on("scaleview", (f, x, y) => {this.scalePoints(f, x, y)});
+    };
+    movePoints(dx, dy){
+        for(let i = 0; i < this.lines.length; i ++){
+            this.lines[i].cx(this.lines[i].cx() - dx);
+            this.lines[i].cy(this.lines[i].cy() - dy);
+        };
+        for(let i = 0; i < this.points.length; i ++){
+            this.points[i][0] -= dx;
+            this.points[i][1] -= dy;
+        };
+        for(let i = 0; i < this.pointsSVG.length; i ++){
+            this.pointsSVG[i].cx(this.pointsSVG[i].cx() - dx);
+            this.pointsSVG[i].cy(this.pointsSVG[i].cy() - dy);
+        };
+    };
+    scalePoints(f, x, y){
+        for(let i = 0; i < this.lines.length; i ++){//UNOPTIMIZED
+            this.lines[i].attr({
+                "x1":f*this.lines[i].attr("x1") + (1 - f)*x,"y1":f*this.lines[i].attr("y1") + (1 - f)*y,
+                "x2":f*this.lines[i].attr("x2") + (1 - f)*x,"y2":f*this.lines[i].attr("y2") + (1 - f)*y
+            });
+        };
+        for(let i = 0; i < this.points.length; i ++){
+            this.points[i][0] = f*this.points[i][0] + (1 - f)*x;
+            this.points[i][1] = f*this.points[i][1] + (1 - f)*y;
+        };
+        for(let i = 0; i < this.pointsSVG.length; i ++){
+            this.pointsSVG[i].cx(f*this.pointsSVG[i].cx() + (1 - f)*x);
+            this.pointsSVG[i].cy(f*this.pointsSVG[i].cy() + (1 - f)*y);
+        };
+    };
+
+    samePoint(p, q){
+        if(Math.abs(p[0] - q[0]) <= this.positionTolerance[0] && Math.abs(p[1] - q[1]) <= this.positionTolerance[1]){
+            return true;
+        };
+        return false;
+    };
+
+    onSegment(p, q, r) { 
+        if (q[0] <= Math.max(p[0], r[0]) && q[0] >= Math.min(p[0], r[0]) && q[1] <= Math.max(p[1], r[1]) && q[1] >= Math.min(p[1], r[1])){
+            return true
+        }; 
+        
+        return false; 
+    } 
+  
+    // To find orientation of ordered triplet (p, q, r). 
+    // The function returns following values 
+    // 0 --> p, q and r are collinear 
+    // 1 --> Clockwise
+    // 2 --> Counterclockwise 
+    orientation(p, q, r) { 
+        let val = (q[1] - p[1]) * (r[0] - q[0]) - 
+                (q[0] - p[0]) * (r[1] - q[1]); 
+        
+        if (val === 0){
+            return 0
+        }; // collinear 
+        
+        if(val > 0){
+            return 1;
+        }else{
+            return 2;
+        };
+    };
+  
+    //returns if p1q1 and p2q2
+    doIntersect(p1, q1, p2, q2){ 
+
+        let o1 = this.orientation(p1, q1, p2); 
+        let o2 = this.orientation(p1, q1, q2); 
+        let o3 = this.orientation(p2, q2, p1); 
+        let o4 = this.orientation(p2, q2, q1); 
+        
+        // General case 
+        if (o1 != o2 && o3 != o4){
+            return true
+        };
+        
+        // Special Cases 
+        // p1, q1 and p2 are collinear and p2 lies on segment p1q1 
+        if (o1 == 0 && this.onSegment(p1, p2, q1)){
+            return true;
+        };
+
+        if (o2 == 0 && this.onSegment(p1, q2, q1)){
+            return true;
+        };
+
+        if (o3 == 0 && this.onSegment(p2, p1, q2)){
+            return true;
+        };
+
+        if (o4 == 0 && this.onSegment(p2, q1, q2)){
+            return true;
+        };
+        
+        return false;
+    } 
+
+    pointPossible(pointX, pointY){
+        if(this.points.length > 1){
+            var p1 = [pointX, pointY];
+            var q1 = [this.points.slice(-1)[0][0], this.points.slice(-1)[0][1]]
+        };
+
+        for(let i = 0; i < this.points.length - 2; i++){//because segment to create is bound to last point
+            if(this.points[i][0] == pointX && this.points[i][1] == pointY && !(i === 0 && this.points.length >= 3)){
+                return false;
+            };
+            if(this.doIntersect(p1, q1, this.points[i], this.points[i + 1])){
+                return false;
+            };
+        };
+
+        for(let i = Math.max(0, this.points.length - 2); i < this.points.length; i++){//Needs refactoring
+            if(this.samePoint(this.points[i], [pointX, pointY]) && !(i === 0 && this.points.length >= 3)){
+                return false;
+            };
+        };
+
+        return true;
     };
     activate(){
         this.visualizer.deactivateOtherTools(this);
+        this.SVGMouse.show();
+        this.visualizer.getJQuery().attr("cursor", "none");
         //MOUSEUP OUTSIDE OF SVG BUG PRESENT
-        this.visualizer.getJQuery().on("mousedown.selection", (e) => {
-            this.clickTimestamp = e.timeStamp;
-            if(e.originalEvent.button === 0){
-                this.mouseDown = true;
-            };
-            this.mouseDownPosition = [e.offsetX, e.offsetY];
+        this.visualizer.getJQuery().on("mousedown.polygoncreation", (e) => {
         })
-        .on("mouseup.selection", (e) => {
-            this.mouseDown = false;
-            if(this.selectionFrame){
-                let BBTopLeft = [this.selectionFrame.attr("x"), this.selectionFrame.attr("y")];
-                let BBRightBottom = [BBTopLeft[0] + this.selectionFrame.attr("width"), BBTopLeft[1] + this.selectionFrame.attr("height")];
-                this.selectionFrame.remove();
-                this.selectionFrame = undefined;
-                let bonds = this.visualizer.getVisualizationBonds();
-                for (let i in bonds){
-                    let bbox = bonds[i].getObjectImagePair().image.bbox();
-                    if (this.BBIntersection(BBTopLeft, BBRightBottom, [bbox.x, bbox.y], [bbox.x2, bbox.y2])){
-                        if(this.selectionMode === 1){
-                            bonds[i].select();
-                        }else if(this.selectionMode === -1){
-                            bonds[i].unselect()
-                        };  
-                    };
-                };
+        .on("mouseup.polygoncreation", (e) => {
+        })
+        .on("mousemove.polygoncreation", (e) => {
+            this.mousePosition = [e.offsetX, e.offsetY];
+            this.SVGMouse.cx(this.mousePosition[0]).cy(this.mousePosition[1]);
+            if(!this.pointPossible(this.mousePosition[0], this.mousePosition[1])){
+                this.SVGMouse.stroke({color:this.style.pointImpossibleColor});
             }else{
-                let bonds = this.visualizer.getVisualizationBonds();
-                for (let i in bonds){
-                    if (bonds[i].getObjectImagePair().image.inside(this.mouseDownPosition[0], this.mouseDownPosition[1])){
-                        if(this.selectionMode === 1){
-                                bonds[i].select();
-                        }else if(this.selectionMode === -1){
-                            bonds[i].unselect()
-                        };
-                    };//Does not consider parental position
-                    //Can not be terminated, because considers only bounding boxes
-                };
+                this.SVGMouse.stroke({color:this.style.pointColor});
             };
         })
-        .on("mousemove.selection", (e) => {
-            if (this.mouseDown && (e.timeStamp - this.clickTimestamp > this.timeTolerance && Math.hypot(e.offsetX - this.mouseDownPosition[0], e.offsetY - this.mouseDownPosition[1]) > this.spaceTolerance)){
-                if(! this.selectionFrame){
-                    this.selectionFrame = this.visualizer.getSVGCanvas().rect(1, 1).fill('none').attr({
-                        "stroke":"white",
-                        "stroke-linecap":"round",
-                        "stroke-width": 1,
-                        "stroke-dasharray":"3,3"
-                    }).move(this.mouseDownPosition[0], this.mouseDownPosition[1]);
-                };
-            };
-            if(this.mouseDown && this.selectionFrame){
-                this.selectionFrame.attr({
-                    "x": Math.min(e.offsetX, this.mouseDownPosition[0]),
-                    "y": Math.min(e.offsetY, this.mouseDownPosition[1]),
-                    "height": Math.abs(e.offsetY - this.mouseDownPosition[1]),
-                    "width": Math.abs(e.offsetX - this.mouseDownPosition[0]),
-                });
-            };
+        .on("mouseleave.polygoncreation", (e) => {
+            this.SVGMouse.hide();
+        }).on("mouseenter.polygoncreation", (e) => {
+            this.SVGMouse.show();
+        }).on("click.polygoncreation", (e) => {
+            this.addPoint(e.offsetX, e.offsetY);
         });
         super.activate();
     };
+    addPoint(x, y){
+        if(this.pointPossible(x, y)){
+            if(this.points.length >= 3 && this.samePoint(this.points[0], [x, y])){
+                this.endDrawing();//Adding point needs to be terminated
+                return
+            };
+            if (this.points.length >= 1){
+                this.lines.push(this.visualizer.getSVGCanvas().line(
+                    this.points.slice(-1)[0][0], this.points.slice(-1)[0][1],
+                    x, y
+                ).stroke({width: this.style.lineSize , color: this.style.lineColor}));
+            };
+            this.points.push([x, y]);
+            this.pointsSVG.push(this.visualizer.getSVGCanvas().circle(this.style.pointSize).fill({color: this.style.pointColor}).stroke({width: this.style.pointCursorStroke , color: this.style.pointColor}).cx(x).cy(y));
+        };
+    };
+    endDrawing(){
+        console.log("drawing ended");
+        this.points = [];
+        for(let i = 0; i < this.lines.length; i++){
+            this.lines[i].remove();
+        };
+        for(let i = 0; i < this.pointsSVG.length; i++){
+            this.pointsSVG[i].remove();
+        };
+        this.lines = [];
+        this.pointsSVG = [];
+    };
     deactivate(){
+        this.visualizer.getJQuery().attr("cursor", "default");
         super.deactivate();
-        this.visualizer.getJQuery().off(".selection");
+        this.visualizer.getJQuery().off(".polygoncreation");
+        this.SVGMouse.hide();
     };
     getIcon(){
-        if (this.selectionMode === 1){
-            return "./icons/tools/selection_plus.png";
-        }else if (this.selectionMode === -1){
-            return "./icons/tools/selection_minus.png";
-        }else{
-            return "./icons/tools/selection.png";
-        }
+        return "./icons/tools/unknown.png";
     };
     getDescription(){
-        if (this.selectionMode === 1){
-            return "Выделить объект/объекты";
-        }else if (this.selectionMode === -1){
-            return "Снять выделение с объекта/объектов"
-        };
+        return "Создание объекта по точкам";
     };
 }

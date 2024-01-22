@@ -42,6 +42,8 @@ class SVGRender{//ADD CULLING
         this.selectionOpacity = 0.9;
         this.infrontElementSelectionOpacity = 0.6;
 
+        this.moveViewCallbacks = [];
+        this.scaleViewCallbacks = [];
         this.objectToFollow = undefined;//physical object that viewport follows
         this.objectToFollowDeltas = [0, 0];
         this.pointTopLeft = [0, 0];//coordinates in xy that top left angle of the screen corresponds to
@@ -154,6 +156,9 @@ class SVGRender{//ADD CULLING
         };
     }
     scaleView(factor, screenX, screenY){
+        for(let i = 0; i < this.scaleViewCallbacks.length; i ++){
+            this.scaleViewCallbacks[i](factor, screenX, screenY);
+        };
         this.pointTopLeft[0] += (1 - 1/factor)*screenX/this.scale;
         this.pointTopLeft[1] += (1 - 1/factor)*screenY/this.scale;
         for (let i = 0; i < this.visualizationBonds.length; i++){
@@ -163,7 +168,17 @@ class SVGRender{//ADD CULLING
         this.scale *= factor;
         this.update();//I don't want to use another formula
     };
+    on(event, callback){
+        if (event === "moveview"){
+            this.moveViewCallbacks.push(callback);
+        }else if (event === "scaleview"){
+            this.scaleViewCallbacks.push(callback);
+        };
+    };
     moveView(dScreenX, dScreenY){
+        for(let i = 0; i < this.moveViewCallbacks.length; i ++){
+            this.moveViewCallbacks[i](dScreenX, dScreenY);
+        };
         this.pointTopLeft[0] += dScreenX/this.scale;
         this.pointTopLeft[1] += dScreenY/this.scale;
         this.update();
@@ -172,7 +187,7 @@ class SVGRender{//ADD CULLING
         if(!object){
             this.objectToFollow = object;
             return;
-        }
+        };
         this.objectToFollow = object;
         this.objectToFollowDeltas = [
             this.pointTopLeft[0] - this.objectToFollow.getBody().position.x,
@@ -189,6 +204,9 @@ class SVGRender{//ADD CULLING
         };
         this.scale = 1;
         this.update();
+    };
+    toSimulationCoordinates(x, y){
+        //TODO
     };
     getVisualizationBonds(){
         return this.visualizationBonds;
@@ -230,7 +248,7 @@ class SVGRender{//ADD CULLING
     removeSlected(obj){
         let index = this.selected.indexOf(obj);
         if (index != -1){
-            obj.getObjectImagePair().image.children().opacity(obj.getObjectImagePair().object.opt.opacity);
+            obj.getObjectImagePair().image.children().opacity(obj   .getObjectImagePair().object.opt.opacity);
             obj.getOutlineObjects().opacity(0);
             this.selected.splice(index, 1);
         };

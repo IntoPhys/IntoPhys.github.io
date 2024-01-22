@@ -181,6 +181,23 @@ c.addToEngine(engine);
 c.attachForce(f);
 
 let btnlist = document.getElementsByClassName("actbtn");
+
+window.pause = () => {
+    if (window.simulationLoop){
+        clearInterval(window.simulationLoop)
+    };
+};
+
+window.play = () => {
+    var lastUpdate = Date.now();
+    window.simulationLoop = setInterval(() => {
+        let now = Date.now();
+        var dt = now - lastUpdate;
+        lastUpdate = now;
+        Matter.Engine.update(engine, dt/1000);
+    }, 0); 
+}
+
 for (let btn of btnlist){
     btn.addEventListener("click", (event)=> {
         let action = event.target.getAttribute("data-action");
@@ -188,17 +205,9 @@ for (let btn of btnlist){
             Matter.Events.trigger(engine, "returnToInitial", {});
             Matter.Engine.update(engine, 0);
         }else if(action === "pause"){
-            if (window.simulationLoop){
-                clearInterval(window.simulationLoop)
-            };
+            window.pause();
         }else if(action === "play"){
-            var lastUpdate = Date.now();
-            window.simulationLoop = setInterval(() => {
-                let now = Date.now();
-                var dt = now - lastUpdate;
-                lastUpdate = now;
-                Matter.Engine.update(engine, dt/1000);
-            }, 0);
+            window.play();
         };
     });
 };
@@ -207,14 +216,17 @@ nav = new NavigationTool(renderSVG);
 sel_plus = new SelectionTool(renderSVG);
 sel_minus = new SelectionTool(renderSVG);
 sel_minus.selectionMode = -1;
+cr_polygon = new PolygonCreationTool(renderSVG);
 //Creating tool interface
 const tagDataToolNameReferance = {
     "navigation": [nav],
-    "selection": [sel_plus, sel_minus]
+    "selection": [sel_plus, sel_minus],
+    "creation": [cr_polygon]
 };
 const selectedTools = {
     "navigation": 0,
-    "selection": 0
+    "selection": 0,
+    "creation": 0
 };
 const BRTolerance = [5, 5];//Determines how much space is provided to multitool selection in bottom right corner
 const timeTolerance = 500;//Determines how much time
@@ -304,7 +316,6 @@ for(let i = 0; i < toolButtons.length; i++){
     toolContainer.appendTo(btn);
     toolContainer.hide();
 };
-
 
 var lastUpdate = Date.now();
 window.simulationLoop = setInterval(() => {

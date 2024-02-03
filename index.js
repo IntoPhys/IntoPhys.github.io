@@ -72,6 +72,7 @@ class PhysicalObject{
         //{type: "vertices", vertices: ...}
         // + data.angle
 
+        this.rendererImage = undefined;
         this.visualizationBond = undefined;
 
         this.forces = [];//Why array
@@ -168,28 +169,23 @@ var renderSVG = SVGRender.create({
 
 let f = new Gravity();
 
-a = new PhysicalObject(0, 0, {type: "polygon", sides:7, radius: 80});
+let a = new PhysicalObject(0, 0, {type: "polygon", sides:7, radius: 80});
 a.addToEngine(engine);
 a.attachForce(f);
 
-b = new PhysicalObject(500, 100, {type: "polygon", sides:9, radius: 10});
-b.addToEngine(engine);
-b.attachForce(f);
-
-c = new PhysicalObject(100, 500, {type: "polygon", sides:3, radius: 30});
-c.addToEngine(engine);
-c.attachForce(f);
-
 let btnlist = document.getElementsByClassName("actbtn");
 
+window.paused = false;
 window.pause = () => {
-    if (window.simulationLoop){
+    if (!window.paused){
+        window.paused = true;
         clearInterval(window.simulationLoop)
     };
 };
 
 window.play = () => {
     var lastUpdate = Date.now();
+    window.paused = false;
     window.simulationLoop = setInterval(() => {
         let now = Date.now();
         var dt = now - lastUpdate;

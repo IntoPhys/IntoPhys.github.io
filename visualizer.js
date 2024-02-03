@@ -6,6 +6,10 @@ class visualizationBond{
         this.image = image;
         this.outlineObjects = outlineObjects;//SVG collection
         this.object = object;
+        this.object.rendererImage = this.image;
+        this.object.getImage = function(){
+            return this.rendererImage;
+        };
     }
     getObjectImagePair(){
         return {
@@ -205,11 +209,18 @@ class SVGRender{//ADD CULLING
         this.scale = 1;
         this.update();
     };
-    toSimulationCoordinates(x, y){
-        //TODO
+    toSimulationCoordinates(coords){
+        return [coords[0]/this.scale + this.pointTopLeft[0], coords[1]/this.scale + this.pointTopLeft[1]];
     };
     getVisualizationBonds(){
         return this.visualizationBonds;
+    };
+    getObjects(){
+        let obj = [];
+        for(let i = 0; i < this.visualizationBonds.length; i++){
+            obj.push(this.visualizationBonds[i].getObjectImagePair().object);
+        };
+        return obj;
     };
     getSlectedObjects(){
         let objects = [];

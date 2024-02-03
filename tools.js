@@ -150,7 +150,7 @@ class SelectionTool extends Tool{
         }else{
             return false;
         }
-    }
+    };
     activate(){
         this.visualizer.deactivateOtherTools(this);
         //MOUSEUP OUTSIDE OF SVG BUG PRESENT
@@ -308,6 +308,35 @@ class PolygonCreationTool extends Tool{
         };
     };
 
+    intersectionPhysicalObject(physicalObject, line){//TODO, check if segment or polygon intersect, CCW polygon
+        let objParts = physicalObject.getBody().parts;
+
+        let lineVertices = Matter.Vertices.create([
+            {x: this.visualizer.toSimulationCoordinates(line[0])[0], y: this.visualizer.toSimulationCoordinates(line[0])[1]},
+            {x: this.visualizer.toSimulationCoordinates(line[1])[0], y: this.visualizer.toSimulationCoordinates(line[1])[1]},
+        ],physicalObject.getBody());//far from optimal
+        
+        if(!Matter.Bounds.overlaps(Matter.Bounds.create(objParts[0].vertices),(Matter.Bounds.create(lineVertices)))){
+            return false;
+        };
+
+        for (let i = 0; i < objParts.length; i++) {
+            let objPartVertices = objParts[i].vertices;
+            if (i === 0 && objParts.length > 1) {
+                continue;
+            };
+            for (let j = 0; j < objPartVertices.length - 1; j++) { 
+                if (this.doIntersect([objPartVertices[j].x, objPartVertices[j].y], [objPartVertices[j + 1].x, objPartVertices[j + 1].y], this.visualizer.toSimulationCoordinates(line[0]), this.visualizer.toSimulationCoordinates(line[1]))){
+                    return true;
+                };
+            };
+            if (this.doIntersect([objPartVertices[0].x, objPartVertices[0].y], [objPartVertices.slice(-1)[0].x, objPartVertices.slice(-1)[0].y], this.visualizer.toSimulationCoordinates(line[0]), this.visualizer.toSimulationCoordinates(line[1]))){
+                return true;
+            };
+        };
+        return false;
+    };
+
     samePoint(p, q){
         if(Math.abs(p[0] - q[0]) <= this.positionTolerance[0] && Math.abs(p[1] - q[1]) <= this.positionTolerance[1]){
             return true;
@@ -378,6 +407,18 @@ class PolygonCreationTool extends Tool{
     } 
 
     pointPossible(pointX, pointY){
+        //add checking other objects
+        //does not account for placing initial point inside of any object
+
+        if(this.points.length >= 1){
+            let obj = this.visualizer.getObjects();
+            for(let i = 0; i < obj.length; i ++){
+                if(this.intersectionPhysicalObject(obj[i], [[pointX, pointY], [this.points.slice(-1)[0][0], this.points.slice(-1)[0][1]]])){
+                    return false;
+                };
+            };
+        };
+
         if(this.points.length > 1){
             var p1 = [pointX, pointY];
             var q1 = [this.points.slice(-1)[0][0], this.points.slice(-1)[0][1]]
@@ -401,6 +442,9 @@ class PolygonCreationTool extends Tool{
         return true;
     };
     activate(){
+        this.wasPaused = window.paused;//from index.js
+        window.pause();//from index.js
+
         this.visualizer.deactivateOtherTools(this);
         this.SVGMouse.show();
         this.visualizer.getJQuery().attr("cursor", "none");
@@ -443,8 +487,53 @@ class PolygonCreationTool extends Tool{
             this.pointsSVG.push(this.visualizer.getSVGCanvas().circle(this.style.pointSize).fill({color: this.style.pointColor}).stroke({width: this.style.pointCursorStroke , color: this.style.pointColor}).cx(x).cy(y));
         };
     };
+    isPolygonPossible(){//checks if polygon comprises other physical objects
+        //rewrite
+        let objs = this.visualizer.getObjects();
+        if(objs.length === 0){
+            return true;
+        };
+
+        let polygonVerticesArray = [];
+        for(let i = 0; i < this.points.length; i++){
+            polygonVerticesArray.push({x: this.visualizer.toSimulationCoordinates(this.points[i])[0], y: this.visualizer.toSimulationCoordinates(this.points[i])[1]});
+        };
+        //FIX CLOCKWISE SORT
+        let polygonVertices = Matter.Vertices.clockwiseSort(Matter.Vertices.create(polygonVerticesArray,objs[0].getBody()));//far from optimal
+
+        for(let i = 0; i < objs.length; i ++){
+            let objParts = objs[i].getBody().parts;
+            if(objParts.length > 1){
+                if(Matter.Vertices.contains(polygonVertices, objParts[1].vertices[0])){
+                    return false;
+                };//concave
+            }else{
+                if(Matter.Vertices.contains(polygonVertices, objParts[0].vertices[0])){
+                    return false;
+                };//convex
+            };
+        };
+        return true;
+    };
     endDrawing(){
-        console.log("drawing ended");
+        //check if intersects with other objects
+        if(this.isPolygonPossible()){
+            let polygonVerticesArray = [];
+            for(let i = 0; i < this.points.length; i++){
+                polygonVerticesArray.push({x: this.visualizer.toSimulationCoordinates(this.points[i])[0], y: this.visualizer.toSimulationCoordinates(this.points[i])[1]});
+            };
+            //FIX CLOCKWISE SORT
+            //BUGGY DUE TO SCALE
+            let polygonVertices = Matter.Vertices.create(Matter.Vertices.clockwiseSort(polygonVerticesArray), this.visualizer.getObjects()[0]);//far from optimal
+            let obj = new PhysicalObject(0, 0, {type: "vertices", vertices: polygonVertices});
+            let newBounds = obj.getBody().bounds;
+            let oldBounds = Matter.Bounds.create(polygonVertices);
+            obj.addToEngine(this.visualizer.engine);
+            Matter.Body.setPosition(obj.getBody(), Matter.Vector.create(obj.getBody().position.x + oldBounds.min.x - newBounds.min.x, obj.getBody().position.y + oldBounds.min.y - newBounds.min.y));
+            this.visualizer.update();
+        }else{
+            //Make failed drawing notificaqtion
+        };
         this.points = [];
         for(let i = 0; i < this.lines.length; i++){
             this.lines[i].remove();
@@ -455,14 +544,20 @@ class PolygonCreationTool extends Tool{
         this.lines = [];
         this.pointsSVG = [];
     };
+    addToVisualizer(){
+        return false;//TODO
+    };
     deactivate(){
+        if(!this.wasPaused){
+            window.play();//from index.js
+        };
         this.visualizer.getJQuery().attr("cursor", "default");
         super.deactivate();
         this.visualizer.getJQuery().off(".polygoncreation");
         this.SVGMouse.hide();
     };
     getIcon(){
-        return "./icons/tools/unknown.png";
+        return "./icons/tools/unknown.png";//TODO  
     };
     getDescription(){
         return "Создание объекта по точкам";

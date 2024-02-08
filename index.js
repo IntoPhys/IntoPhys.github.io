@@ -1,4 +1,4 @@
-window.G = 6.67 * Math.pow(10,-11);
+window.G = 6.67 * Math.pow(10,-11)* Math.pow(10, 11);
 window.g_of_planets = {
     "True Earth equator": 9.8144,
     "Effective Earth equator": 9.7805,
@@ -18,9 +18,15 @@ class Force{
     attachObject(obj){
         this.objects.push(obj);
     }
-    getForce(obj){
+    detachObject(obj){
 
-    }
+    };//TODO
+    getForce(obj){
+        return Matter.Vector.create(0, 0);
+    };
+    getTorque(obj){
+        return 0;
+    };
     getApplicationPoint(obj){
         return obj.getBody().position;
     }
@@ -61,11 +67,11 @@ class Gravity extends Force{//TODO: Add torque effect
             }
         };
         return force;
-    }
+    };
 }
 
 class PhysicalObject{
-    constructor(x, y, data, extraOptions = {}){
+    constructor(x, y, data, extraOptions = {}, cellSize = [1, 1], divide = true){
         //{type: "polygon", sides: ..., radius: ...}
         //{type: "circle", radius: ...}
         //{type: "rectangle", width: ..., height: ...}
@@ -77,6 +83,12 @@ class PhysicalObject{
 
         this.forces = [];//Why array
 
+        this.cellSize = cellSize;
+        this.cells = undefined;
+        this.densityFunction = (u, v)=>{return 5*(u**2 + v**2)};
+        this.divisionPosition = undefined;//Matter.js vector
+        this.divisionAngle = undefined;
+
         this.opt = {
             friction: 0,
             frictionStatic: 0,
@@ -85,7 +97,7 @@ class PhysicalObject{
             color: "#D3B0FF",
             opacity: 1
         };
-        Object.assign(this.opt, this.extraOptions);
+        Object.assign(this.opt, extraOptions);
         if(data.type === "polygon"){
             this.body = Matter.Bodies.polygon(x, y, data.sides, data.radius, this.opt)
         };
@@ -104,14 +116,107 @@ class PhysicalObject{
         };
         this.body.parentalPhysicalObject = this;
         this.saveInitial();
+        if(divide){
+            this.divide();
+            this.integrateDensity();
+            this.recalculateCM();
+            this.integrateInertia();
+        };
     };
+    
+    divide(){
+        let BB = Matter.Bounds.create(this.body.parts[0].vertices);
+        let parts = this.body.parts;
+        this.cells = [];
+        for(let x = BB.min.x; x <= BB.max.x; x += this.cellSize[0]){
+            for(let y = BB.min.y; y <= BB.max.y; y += this.cellSize[1]){
+                if(parts.length === 1){
+                    //convex
+                    if(Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x, y))&
+                    Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x + this.cellSize[0], y))&
+                    Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x, y + this.cellSize[1]))&
+                    Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x + this.cellSize[0], y + this.cellSize[1]))){
+                        this.cells.push([[x, y], [x + this.cellSize[0], y + this.cellSize[1]], this.densityFunction ? this.cellSize[0]*this.cellSize[1]*this.densityFunction(2*(x + this.cellSize[0]/2 - (BB.max.x + BB.min.x)/2)/(BB.max.x - BB.min.x), 2*(y + this.cellSize[1]/2 - (BB.max.y + BB.min.y)/2)/(BB.max.y - BB.min.y)): undefined]);
+                    };
+                }else{
+                    for(let i = 1; i < parts.length; i ++){//Not optimal
+                        if(Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x, y))&
+                        Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x + this.cellSize[0], y))&
+                        Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x, y + this.cellSize[1]))&
+                        Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x + this.cellSize[0], y + this.cellSize[1]))){
+                            this.cells.push([[x, y], [x + this.cellSize[0], y + this.cellSize[1]], this.densityFunction ? this.cellSize[0]*this.cellSize[1]*this.densityFunction(2*(x + this.cellSize[0]/2 - (BB.max.x + BB.min.x)/2)/(BB.max.x - BB.min.x), 2*(y + this.cellSize[1]/2 - (BB.max.y + BB.min.y)/2)/(BB.max.y - BB.min.y)): undefined]);
+                            break;//parts can't intersect
+                        };
+                    };
+                    //concave
+                };
+            };
+            this.divisionPosition = this.body.position;
+            this.divisionAngle = this.body.angle;
+        };
+        //Matter.Vertices.contains()
+    };//TODO divides object into smaller parts
+    integrateDensity(){
+        let totalMass = 0;
+        if (!this.cells){
+            return false;
+        };
+        for(let i in this.cells){
+            if(!this.cells[i][2]){
+                return false;
+            };
+            totalMass += this.cells[i][2];
+        };
+        Matter.Body.setMass(this.body, totalMass);
+    };//
+    integrateInertia(){
+        let totalInertia = 0;
+        if (!this.cells){
+            return false;
+        };
+        for(let i in this.cells){
+            if(!this.cells[i][2]){
+                return false;
+            };
+            totalInertia += this.cells[i][2]*Matter.Vector.magnitudeSquared(Matter.Vector.sub(Matter.Vector.create((this.cells[i][0][0] + this.cells[i][1][0])/2, (this.cells[i][0][1] + this.cells[i][1][1])/2), this.body.position));
+        };
+        console.log(totalInertia);
+        Matter.Body.setInertia(this.body, totalInertia);
+    };//
+    recalculateCM(){
+        if (!this.cells){
+            return false;
+        };
+        let CMx = undefined;
+        let CMy = undefined;
+        for(let c in this.cells){
+            if(CMx && CMy){
+                CMx += ((this.cells[c][0][0] + this.cells[c][1][0])/2)*this.cells[c][2]/this.body.mass
+                CMy += ((this.cells[c][0][1] + this.cells[c][1][1])/2)*this.cells[c][2]/this.body.mass
+            }else{
+                CMx = ((this.cells[c][0][0] + this.cells[c][1][0])/2)*this.cells[c][2]/this.body.mass
+                CMy = ((this.cells[c][0][1] + this.cells[c][1][1])/2)*this.cells[c][2]/this.body.mass
+            };
+        };
+        console.log(this.body.position);
+        Matter.Body.setCentre(this.body, Matter.Vector.create(CMx, CMy));
+        console.log(this.body.position);
+        this.divisionPosition = Matter.Vector.create(CMx, CMy);
+    };//
+    getDivision(){
+        return this.cells;
+    };//Transforms divided topology
     attachForce(force){
         force.attachObject(this);
         this.forces.push(force);
-    }
+    };
+    detachForce(force){
+
+    };//TODO
     updateForces(){
         for (let i = 0; i < this.forces.length; i++){
             Matter.Body.applyForce(this.body, this.forces[i].getApplicationPoint(this), this.forces[i].getForce(this));//Accounts for inverse coordinates
+            this.body.torque = this.forces[i].getTorque(this);
         };
     };
     saveInitial(){
@@ -146,7 +251,7 @@ class PhysicalObject{
     getBody(){
         return this.body;
     };
-}
+};
 
 // module aliases
 var Engine = Matter.Engine;
@@ -166,21 +271,25 @@ var renderSVG = SVGRender.create({
     engine: engine,
 });
 
+var objectMananger = new ObjectMannager(engine);
+
 
 let f = new Gravity();
-
+objectMananger.addGlobalForce(f);
 let a = new PhysicalObject(0, 0, {type: "polygon", sides:7, radius: 80});
+let b = new PhysicalObject(300, 300, {type: "polygon", sides:3, radius: 20});
+let c = new PhysicalObject(300, -300, {type: "polygon", sides:90, radius: 60});
 a.addToEngine(engine);
-a.attachForce(f);
+b.addToEngine(engine);
+c.addToEngine(engine);
+//a.attachForce(f);
 
 let btnlist = document.getElementsByClassName("actbtn");
 
 window.paused = false;
 window.pause = () => {
-    if (!window.paused){
-        window.paused = true;
-        clearInterval(window.simulationLoop)
-    };
+    window.paused = true;
+    clearInterval(window.simulationLoop)
 };
 
 window.play = () => {

@@ -31,7 +31,7 @@ class visualizationBond{
     isSelected(){
         return this.selected;
     };
-}
+};
 
 class SVGRender{//ADD CULLING
     static create(obj){

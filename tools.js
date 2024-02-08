@@ -238,6 +238,7 @@ class SelectionTool extends Tool{
 };
 
 //TODO
+//half-transparency
 class PolygonCreationTool extends Tool{
     constructor (visualizer){
         super(visualizer);
@@ -495,6 +496,7 @@ class PolygonCreationTool extends Tool{
         };
 
         let polygonVerticesArray = [];
+
         for(let i = 0; i < this.points.length; i++){
             polygonVerticesArray.push({x: this.visualizer.toSimulationCoordinates(this.points[i])[0], y: this.visualizer.toSimulationCoordinates(this.points[i])[1]});
         };
@@ -524,6 +526,8 @@ class PolygonCreationTool extends Tool{
             };
             //FIX CLOCKWISE SORT
             //BUGGY DUE TO SCALE
+            //CONVERTION TO SIMULATION COORDINATES WORKS FINE
+
             let polygonVertices = Matter.Vertices.create(Matter.Vertices.clockwiseSort(polygonVerticesArray), this.visualizer.getObjects()[0]);//far from optimal
             let obj = new PhysicalObject(0, 0, {type: "vertices", vertices: polygonVertices});
             let newBounds = obj.getBody().bounds;
@@ -531,6 +535,16 @@ class PolygonCreationTool extends Tool{
             obj.addToEngine(this.visualizer.engine);
             Matter.Body.setPosition(obj.getBody(), Matter.Vector.create(obj.getBody().position.x + oldBounds.min.x - newBounds.min.x, obj.getBody().position.y + oldBounds.min.y - newBounds.min.y));
             this.visualizer.update();
+            obj.saveInitial();
+
+            //Test
+            //for(let j in polygonVerticesArray){
+                //console.log(j);
+                //let obj = new PhysicalObject(polygonVerticesArray[j].x, polygonVerticesArray[j].y, {type: "polygon", sides:7, radius: 3});
+                //obj.addToEngine(this.visualizer.engine);
+            //};
+            //this.visualizer.update();
+            //ENDTest
         }else{
             //Make failed drawing notificaqtion
         };

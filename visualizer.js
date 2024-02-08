@@ -31,6 +31,10 @@ class visualizationBond{
     isSelected(){
         return this.selected;
     };
+    delete(){
+        this.image.remove();
+        this.outlineObjects.remove();
+    };
 };
 
 class SVGRender{//ADD CULLING
@@ -64,20 +68,73 @@ class SVGRender{//ADD CULLING
         });
 
         this.contextmenuTag = `<div class = "context_menu" style = "display: none; position: absolute;">
-        <label class="menu_button context_menu_button">Первый пункт</label>
-        <label class="menu_button context_menu_button">Второй пункт</label>
-        <label class="menu_button context_menu_button">...</label>
-        <label class="menu_button context_menu_button">Хрен знает какой пункт</label>
-        <label class="menu_button context_menu_button">Ещё один пункт</label>
-        <label class="menu_button context_menu_button">Ещё один пункт</label>
-        <label class="menu_button context_menu_button">Ещё один пункт</label>
-        <label class="menu_button context_menu_button">Ещё один пункт</label>
-        <label class="menu_button context_menu_button">Ещё один пункт</label>
         </div>
         `
 
         this.JQueryElement = $(this.SVGCanvas.node);
         this.contextmenu = $(this.contextmenuTag).appendTo(this.JQueryElement.parent());
+
+        //creating buttons
+
+        let sectionDivision = '<div style = "background-color:#555555;height: 1px; margin-left: -3px; width: "100%";" ></div>';
+
+        let selectAllButton = $('<label class="menu_button context_menu_button">Выделить всё</label>');
+        selectAllButton.appendTo(this.contextmenu);
+        selectAllButton.on("click", ()=>{
+            for (let i in this.visualizationBonds){
+                this.visualizationBonds[i].select();
+            };
+            this.contextmenu.hide();
+        });
+        
+        let unselectButton = $('<label class="menu_button context_menu_button">Снять выделение</label>');
+        unselectButton.appendTo(this.contextmenu);
+        unselectButton.on("click", ()=>{
+            for (let i in this.visualizationBonds){
+                if (this.visualizationBonds[i].isSelected()){
+                    this.visualizationBonds[i].unselect();
+                };
+            };
+            this.contextmenu.hide();
+        });
+
+        let invertButton = $('<label class="menu_button context_menu_button">Инвертировать выделение</label>');
+        invertButton.appendTo(this.contextmenu);
+        invertButton.on("click", ()=>{
+            for (let i in this.visualizationBonds){
+                if (this.visualizationBonds[i].isSelected()){
+                    this.visualizationBonds[i].unselect();
+                }else{
+                    this.visualizationBonds[i].select();
+                };
+            };
+            this.contextmenu.hide();
+        });
+
+        $(sectionDivision).appendTo(this.contextmenu);
+
+        let deleteButton = $('<label class="menu_button context_menu_button">Удалить объекты(Delete)</label>');
+        deleteButton.appendTo(this.contextmenu);
+        deleteButton.on("click", ()=>{
+            let selected = this.getSelectedObjects()
+            for (let i in selected){
+                selected[i].delete();
+            };
+            this.contextmenu.hide();
+        });
+
+        $(document).on("keyup", (e)=>{
+            if (e.originalEvent.key === "Delete"){
+                let selected = this.getSelectedObjects()
+                for (let i in selected){
+                    selected[i].delete();
+                };
+                this.contextmenu.hide();
+            };
+        });
+
+        //end of creating buttons
+
         this.JQueryElement.on("mousedown", (e) => {
             if (e.originalEvent.button === 0 || e.originalEvent.button === 1){
                 this.contextmenu.css("display", "none");
@@ -109,25 +166,38 @@ class SVGRender{//ADD CULLING
             this.update();
         });
         Matter.Events.on(this.engine, "objectAdded", (event)=>{
-            this.addObject(event.physicalObject);
+            this.addObject(event.physicalObject, event.overridePolygon);
+        });
+        Matter.Events.on(this.engine, "objectDeleted", (event)=>{
+            for (let i = 0; i < this.visualizationBonds.length; i++){
+                if(this.visualizationBonds[i].getObjectImagePair().object === event.physicalObject){
+                    this.visualizationBonds[i].delete();
+                    this.visualizationBonds.splice(i, 1);
+                    break;
+                };
+            };
         });
     }
-    addObject(physicalObject) {
+    addObject(physicalObject, overridePolygon = undefined) {
         let xPosition = physicalObject.getBody().position.x;
         let yPosition = physicalObject.getBody().position.y;
         let objParts = physicalObject.getBody().parts;
         let SVGObject = this.SVGCanvas.group();
         let color = physicalObject.opt.color;
-        for (let i = 0; i < objParts.length; i++) {
-            if (i === 0 && objParts.length > 1) {
-                continue;
+        if(!overridePolygon){
+            for (let i = 0; i < objParts.length; i++) {
+                if (i === 0 && objParts.length > 1) {
+                    continue;
+                };
+                let objPartVertices = objParts[i].vertices;
+                let vertices = [];
+                for (let i = 0; i < objPartVertices.length; i++) {
+                    vertices.push(objPartVertices[i].x - xPosition, objPartVertices[i].y - yPosition);
+                };
+                SVGObject.polygon(vertices).fill(color).stroke(color).opacity(physicalObject.opt.opacity);
             };
-            let objPartVertices = objParts[i].vertices;
-            let vertices = [];
-            for (let i = 0; i < objPartVertices.length; i++) {
-                vertices.push(objPartVertices[i].x - xPosition, objPartVertices[i].y - yPosition);
-            };
-            SVGObject.polygon(vertices).fill(color).stroke(color).opacity(physicalObject.opt.opacity);
+        }else{
+            SVGObject.polygon(overridePolygon).fill(color).stroke(color).opacity(physicalObject.opt.opacity);
         };
         SVGObject.cx(this.scale*(xPosition - this.pointTopLeft[0]));
         SVGObject.cy(this.scale*(yPosition - this.pointTopLeft[1]));
@@ -222,7 +292,7 @@ class SVGRender{//ADD CULLING
         };
         return obj;
     };
-    getSlectedObjects(){
+    getSelectedObjects(){
         let objects = [];
         for (let i in this.visualizationBonds){
             if (this.visualizationBonds[i].isSelected()){

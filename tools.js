@@ -5,6 +5,7 @@
 //S, s - select
 //U, u - unselect
 //C, c - create
+//del resurved for deletion
 class Tool{
     constructor (visualizer){
         this.visualizer = visualizer;
@@ -239,6 +240,7 @@ class SelectionTool extends Tool{
 
 //TODO
 //half-transparency
+/*
 class PolygonCreationTool extends Tool{
     constructor (visualizer){
         super(visualizer);
@@ -532,8 +534,22 @@ class PolygonCreationTool extends Tool{
             let obj = new PhysicalObject(0, 0, {type: "vertices", vertices: polygonVertices});
             let newBounds = obj.getBody().bounds;
             let oldBounds = Matter.Bounds.create(polygonVertices);
-            obj.addToEngine(this.visualizer.engine);
+            obj.addToEngine(this.visualizer.engine, undefined);
             Matter.Body.setPosition(obj.getBody(), Matter.Vector.create(obj.getBody().position.x + oldBounds.min.x - newBounds.min.x, obj.getBody().position.y + oldBounds.min.y - newBounds.min.y));
+            console.log(obj.getBody().parts);
+            
+            //Test
+            //for(let j in obj.getBody().parts){
+            //    for(let i in obj.getBody().parts[j].vertices){
+            //        let vect = obj.getBody().parts[j].vertices[i];
+            //        console.log(vect);
+            //        let obj1 = new PhysicalObject(vect.x, vect.y, {type: "circle", radius: 3});
+            //        obj1.addToEngine(this.visualizer.engine);
+            //        this.visualizer.update();
+            //    };
+            //};
+            //Test1
+
             this.visualizer.update();
             obj.saveInitial();
 
@@ -577,3 +593,4 @@ class PolygonCreationTool extends Tool{
         return "Создание объекта по точкам";
     };
 }
+*/

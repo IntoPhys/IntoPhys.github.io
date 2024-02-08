@@ -13,23 +13,20 @@ Matter.Common.setDecomp(decomp);
 
 window.contextMenu = document.getElementById("contextmenu");
 
+//Rewrite force system to ccount for cells
 class Force{
     objects = []//Why array
     attachObject(obj){
         this.objects.push(obj);
     }
     detachObject(obj){
-
-    };//TODO
-    getForce(obj){
-        return Matter.Vector.create(0, 0);
+        let index = this.objects.indexOf(obj);
+        if (index != -1){
+            this.objects.splice(index, 1);
+        };
     };
-    getTorque(obj){
-        return 0;
+    applyForce(obj){
     };
-    getApplicationPoint(obj){
-        return obj.getBody().position;
-    }
 }
 
 class ConstantForce extends Force{
@@ -37,8 +34,8 @@ class ConstantForce extends Force{
         super();
         this.force = Matter.Vector.create(forceX, forceY);
     };
-    getForce(obj){
-        return this.force;
+    applyForce(obj){
+        Matter.Body.applyForce(obj.getBody(), obj.position, this.force);
     };
 }
 
@@ -47,8 +44,8 @@ class CelestialGravity extends Force{
         super();
         this.acceleration = Matter.Vector.create(0, window.g_of_planets[celestialBody]);
     };
-    getForce(obj){
-        return Matter.Vector.mult(this.acceleration, obj.getBody().mass);
+    applyForce(obj){
+        Matter.Body.applyForce(obj.getBody(), obj.position, Matter.Vector.mult(this.acceleration, obj.getBody().mass));
     };
 }
 
@@ -56,7 +53,7 @@ class Gravity extends Force{//TODO: Add torque effect
     constructor(){
         super();
     };
-    getForce(obj){
+    applyForce(obj){
         let force = Matter.Vector.create(0, 0);
         for (let i = 0; i < this.objects.length; i++){
             if (obj != this.objects[i]){
@@ -85,7 +82,7 @@ class PhysicalObject{
 
         this.cellSize = cellSize;
         this.cells = undefined;
-        this.densityFunction = (u, v)=>{return 5*(u**2 + v**2)};
+        this.densityFunction = (u, v)=>{return 5};
         this.divisionPosition = undefined;//Matter.js vector
         this.divisionAngle = undefined;
 
@@ -151,7 +148,7 @@ class PhysicalObject{
                     //concave
                 };
             };
-            this.divisionPosition = this.body.position;
+            this.divisionPosition = [this.body.position.x, this.body.position.y];
             this.divisionAngle = this.body.angle;
         };
         //Matter.Vertices.contains()
@@ -180,7 +177,6 @@ class PhysicalObject{
             };
             totalInertia += this.cells[i][2]*Matter.Vector.magnitudeSquared(Matter.Vector.sub(Matter.Vector.create((this.cells[i][0][0] + this.cells[i][1][0])/2, (this.cells[i][0][1] + this.cells[i][1][1])/2), this.body.position));
         };
-        console.log(totalInertia);
         Matter.Body.setInertia(this.body, totalInertia);
     };//
     recalculateCM(){
@@ -201,21 +197,37 @@ class PhysicalObject{
         console.log(this.body.position);
         Matter.Body.setCentre(this.body, Matter.Vector.create(CMx, CMy));
         console.log(this.body.position);
-        this.divisionPosition = Matter.Vector.create(CMx, CMy);
+        this.divisionPosition = [CMx, CMy];
     };//
     getDivision(){
-        return this.cells;
+        if(!this.cells){
+            return false;
+        };
+        let recalculatedCells = [];
+        for(c in this.cells){
+            recalculatedCells.push([
+                [this.body.position.x + (this.cells[c][0][0] - this.divisionPosition[0])*Math.cos(this.body.angle - this.divisionAngle) - (this.cells[c][0][1] - this.divisionPosition[1])*Math.sin(this.body.angle - this.divisionAngle),
+                this.body.position.y + (this.cells[c][0][0] - this.divisionPosition[0])*Math.sin(this.body.angle - this.divisionAngle) + (this.cells[c][0][1] - this.divisionPosition[1])*Math.cos(this.body.angle - this.divisionAngle)],
+                [this.body.position.x + (this.cells[c][1][0] - this.divisionPosition[0])*Math.cos(this.body.angle - this.divisionAngle) - (this.cells[c][1][1] - this.divisionPosition[1])*Math.sin(this.body.angle - this.divisionAngle),
+                this.body.position.y + (this.cells[c][1][0] - this.divisionPosition[0])*Math.sin(this.body.angle - this.divisionAngle) + (this.cells[c][1][1] - this.divisionPosition[1])*Math.cos(this.body.angle - this.divisionAngle)]
+            ,this.cells[c][2]]);
+        };
+        return recalculatedCells;
     };//Transforms divided topology
     attachForce(force){
         force.attachObject(this);
         this.forces.push(force);
     };
     detachForce(force){
-
-    };//TODO
+        let index = this.forces.indexOf(force);
+        if (index != -1){
+            this.forces[index].detachObject(this);
+            this.forces.splice(index, 1);
+        };
+    };
     updateForces(){
         for (let i = 0; i < this.forces.length; i++){
-            Matter.Body.applyForce(this.body, this.forces[i].getApplicationPoint(this), this.forces[i].getForce(this));//Accounts for inverse coordinates
+            this.forces[i].applyForce(this);
             this.body.torque = this.forces[i].getTorque(this);
         };
     };
@@ -235,7 +247,7 @@ class PhysicalObject{
             Matter.Body.setAngularVelocity(this.body, this.initialState.angularVelocity)
         };
     }
-    addToEngine(engine){
+    addToEngine(engine, overridePolygon = undefined){//can override polygon for visualization
         Matter.Events.on(engine, "afterUpdate", (event)=>{
             this.updateForces();
         });
@@ -243,7 +255,7 @@ class PhysicalObject{
             this.returnToInitial();
         })
         Matter.Composite.add(engine.world, this.body);
-        Matter.Events.trigger(engine, "objectAdded", {physicalObject: this})
+        Matter.Events.trigger(engine, "objectAdded", {physicalObject: this, overridePolygon: overridePolygon})
     };
     setVisualizationBond(bond){
         this.visualizationBond = bond;
@@ -251,6 +263,13 @@ class PhysicalObject{
     getBody(){
         return this.body;
     };
+    delete(){
+        for(let f in this.forces){
+            this.detachForce(this.forces[f]);
+        };
+        Matter.Composite.remove(engine.world, this.body);
+        Matter.Events.trigger(engine, "objectDeleted", {physicalObject: this})
+    };//
 };
 
 // module aliases
@@ -292,7 +311,7 @@ window.pause = () => {
     clearInterval(window.simulationLoop)
 };
 
-window.play = () => {
+window.play = () => {//FIX SIMULATION LOOP
     var lastUpdate = Date.now();
     window.paused = false;
     window.simulationLoop = setInterval(() => {
@@ -321,17 +340,17 @@ nav = new NavigationTool(renderSVG);
 sel_plus = new SelectionTool(renderSVG);
 sel_minus = new SelectionTool(renderSVG);
 sel_minus.selectionMode = -1;
-cr_polygon = new PolygonCreationTool(renderSVG);
+//cr_polygon = new PolygonCreationTool(renderSVG);
 //Creating tool interface
 const tagDataToolNameReferance = {
     "navigation": [nav],
     "selection": [sel_plus, sel_minus],
-    "creation": [cr_polygon]
+    //"creation": [cr_polygon]
 };
 const selectedTools = {
     "navigation": 0,
     "selection": 0,
-    "creation": 0
+    //"creation": 0
 };
 const BRTolerance = [5, 5];//Determines how much space is provided to multitool selection in bottom right corner
 const timeTolerance = 500;//Determines how much time

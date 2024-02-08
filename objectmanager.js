@@ -21,6 +21,9 @@ class ObjectMannager{
         this.globalForces.push(force);
     };
     removeGlobalForce(force){
-
-    };//TODO
+        let index = this.objects.indexOf(force);
+        if (index != -1){
+            this.globalForces.splice(index, 1);
+        };
+    };
 }

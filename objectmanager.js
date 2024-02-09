@@ -1,4 +1,5 @@
 //contains default settings for creating objects
+//attaches forces
 class ObjectMannager{
     constructor (engine){
         this.globalForces = [];
@@ -10,6 +11,8 @@ class ObjectMannager{
                 event.physicalObject.attachForce(this.globalForces[f]);
             };
         });
+        Matter.Events.on(engine, "collisionStart", (pairs)=>{});//used for elsastic collisions
+        Matter.Events.on(engine, "collisionStart", (pairs) => {});//usd for friction
     };
     getGlobalForces(){
         return this.globalForces;

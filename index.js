@@ -13,19 +13,93 @@ Matter.Common.setDecomp(decomp);
 
 window.contextMenu = document.getElementById("contextmenu");
 
-//Rewrite force system to ccount for cells
-class Force{
-    objects = []//Why array
-    attachObject(obj){
-        this.objects.push(obj);
-    }
-    detachObject(obj){
-        let index = this.objects.indexOf(obj);
-        if (index != -1){
-            this.objects.splice(index, 1);
+class ForceObjectBond{//Forces need to be added after adding to engine
+    constructor(object, force, visualizer, visualize = true){
+        this.object = object;
+        this.force = force;
+        this.visualizer = visualizer;
+        this.visualize = visualize;
+
+        this.SVGImage = undefined;
+        this.visualized = false;
+    };
+    applyForce(override){
+        if(!override){
+            Matter.Body.applyForce(this.object.getBody(), this.applicationPoint, this.appliedForce);
+            if(!this.visualized&this.visualize){
+                this.visualizer.addForceVisual(this);
+                this.visualized = true;
+            };
+        }else{
+            Matter.Body.applyForce(override, this.applicationPoint, this.appliedForce);
+            if(!this.visualized&this.visualize){
+                this.visualizer.addForceVisual(this);
+                this.visualized = true;
+            }
         };
     };
-    applyForce(obj){
+    setForceApplied(applicationPoint, appliedForce){
+        this.applicationPoint = applicationPoint;
+        this.appliedForce = appliedForce;
+    };
+    recalculateForce(parametersToOverride){
+        this.force.updateForce(this, parametersToOverride);
+    };
+    getForceApplied(){
+        return [this.applicationPoint, this.appliedForce];
+    };
+    getObject(){
+        return this.object;
+    };
+    getForce(){
+        return this.force;
+    };
+    setSVGImage(image){
+        this.SVGImage = image;
+    };
+    getSVGImage(){
+        return this.SVGImage;
+    };
+    getVisuals(){
+        return {strokeWidth: 1, strokeColor: "green"}
+    };
+    hide(){
+        this.SVGImage.hide();
+    };
+    show(){
+        this.SVGImage.show();
+    };
+    delete(){
+        this.object.detachBond(this);
+        this.force.detachBond(this);
+        this.visualizer.removeForceVisual(this);
+    };
+};
+
+//Forces
+//Rewrite force system to ccount for cells
+class Force{
+    bonds = []//Why array
+    attachObject(obj){
+        let bond = new ForceObjectBond(obj, this, obj.visualizationBond.visualizer);
+        this.bonds.push(bond);
+        return bond;
+    }
+    detachBond(bond){
+        let index = this.bonds.indexOf(bond);
+        if (index != -1){
+            this.bonds.splice(index, 1);
+        };
+    };
+    detachObject(obj){
+        for(i in this.bonds){
+            if(this.bonds[i].getObject() === obj){
+                this.bonds[i].delete();
+            };
+        };
+    };
+    updateForce(bond){
+        bond.setForceApplied(bond.getObject().getBody().position, Matter.Vector.create(0, 0));
     };
 }
 
@@ -34,8 +108,8 @@ class ConstantForce extends Force{
         super();
         this.force = Matter.Vector.create(forceX, forceY);
     };
-    applyForce(obj){
-        Matter.Body.applyForce(obj.getBody(), obj.position, this.force);
+    updateForce(bond){
+        bond.setForceApplied(bond.getObject().getBody().position, this.force);
     };
 }
 
@@ -44,8 +118,8 @@ class CelestialGravity extends Force{
         super();
         this.acceleration = Matter.Vector.create(0, window.g_of_planets[celestialBody]);
     };
-    applyForce(obj){
-        Matter.Body.applyForce(obj.getBody(), obj.position, Matter.Vector.mult(this.acceleration, obj.getBody().mass));
+    updateForce(bond){
+        bond.setForceApplied(bond.getObject().getBody().position, Matter.Vector.mult(this.acceleration, bond.getObject().getBody().mass));
     };
 }
 
@@ -53,22 +127,90 @@ class Gravity extends Force{//TODO: Add torque effect
     constructor(){
         super();
     };
-    applyForce(obj){
+    updateForce(bond){
         let force = Matter.Vector.create(0, 0);
-        for (let i = 0; i < this.objects.length; i++){
-            if (obj != this.objects[i]){
-                let addForce = Matter.Vector.mult(Matter.Vector.sub(this.objects[i].getBody().position, obj.getBody().position),
-                 G*obj.getBody().mass*this.objects[i].getBody().mass/(Math.pow(Matter.Vector.magnitude(Matter.Vector.sub(this.objects[i].getBody().position, obj.getBody().position)), 3))
+        for (let i in this.bonds){
+            if (bond.getObject() != this.bonds[i].getObject()){
+                let addForce = Matter.Vector.mult(
+                        Matter.Vector.sub(this.bonds[i].getObject().getBody().position, 
+                        bond.getObject().getBody().position),
+                    G*bond.getObject().getBody().mass*this.bonds[i].getObject().getBody().mass/
+                    (Math.pow(Matter.Vector.magnitude(Matter.Vector.sub(this.bonds[i].getObject().getBody().position, bond.getObject().getBody().position)), 3))
                 )
                 force = Matter.Vector.add(force, addForce);
             }
         };
-        return force;
+        bond.setForceApplied(bond.getObject().getBody().position, force);
     };
 }
 
+//phantoms
+//Calculates net force
+class PhantomForceObjectBond extends ForceObjectBond{
+    constructor(object, force, visualizer, bondsToAverage){
+        super(object, force, visualizer);
+        this.applicationPoint = Matter.Vector.create(0,0);//TEMPORARY ADD AVERAGING
+        this.appliedForce = Matter.Vector.create(0, 0);//TEMPORARY ADD AVERAGING
+        this.visualizer.addForceVisual(this);
+    };
+    recalculateForce(){
+        //A BIG TODO
+    };
+}
+
+class PhantomParent{
+    constructor(realObject){
+        this.realObject = realObject;
+        this.division = realObject.getDivision();
+        this.phantoms = [];
+        for(let i = 0; i < this.division.length; i++){
+            let ph = new PhantomObject(this, i)
+            ph.visualizationBond = {visualizer: this.realObject.visualizationBond.visualizer};
+            this.phantoms.push(ph);
+        };
+    };
+    update(){
+        this.division = this.realObject.getDivision();
+        for(let i in this.phantoms){
+            this.phantoms[i].update();
+        };
+    };
+    getDivision(){
+        return this.division;
+    }
+    getPhantoms(){
+        return this.phantoms;
+    };
+}
+
+class PhantomObject{
+    constructor(phantomParent, phantomIndex){
+        this.phantomParent = phantomParent;
+        this.phantomIndex = phantomIndex;
+        this.mass = this.phantomParent.getDivision()[phantomIndex][2];
+        this.position = Matter.Vector.create(
+            (this.phantomParent.getDivision()[phantomIndex][0][0] + this.phantomParent.getDivision()[phantomIndex][1][0])/2,
+            (this.phantomParent.getDivision()[phantomIndex][0][1] + this.phantomParent.getDivision()[phantomIndex][1][1])/2
+        );
+        this.charge = 0;
+        this.bonds = [];
+    };
+    update(){
+        this.position = Matter.Vector.create(
+            (this.phantomParent.getDivision()[this.phantomIndex][0][0] + this.phantomParent.getDivision()[this.phantomIndex][1][0])/2,
+            (this.phantomParent.getDivision()[this.phantomIndex][0][1] + this.phantomParent.getDivision()[this.phantomIndex][1][1])/2
+        );
+    }
+    getBody(){
+        return {position: this.position, mass: this.mass}
+    };
+    detachBond(bond){
+    };
+};
+
+//physical object
 class PhysicalObject{
-    constructor(x, y, data, extraOptions = {}, cellSize = [1, 1], divide = true){
+    constructor(x, y, data, extraOptions = {}, cellSize = [10, 10], divide = true){
         //{type: "polygon", sides: ..., radius: ...}
         //{type: "circle", radius: ...}
         //{type: "rectangle", width: ..., height: ...}
@@ -78,13 +220,14 @@ class PhysicalObject{
         this.rendererImage = undefined;
         this.visualizationBond = undefined;
 
-        this.forces = [];//Why array
+        this.bonds = [];//Why array
 
         this.cellSize = cellSize;
         this.cells = undefined;
         this.densityFunction = (u, v)=>{return 5};
         this.divisionPosition = undefined;//Matter.js vector
         this.divisionAngle = undefined;
+        this.divisionForceAttached = false;
 
         this.opt = {
             friction: 0,
@@ -177,7 +320,9 @@ class PhysicalObject{
             };
             totalInertia += this.cells[i][2]*Matter.Vector.magnitudeSquared(Matter.Vector.sub(Matter.Vector.create((this.cells[i][0][0] + this.cells[i][1][0])/2, (this.cells[i][0][1] + this.cells[i][1][1])/2), this.body.position));
         };
-        Matter.Body.setInertia(this.body, totalInertia);
+        if(totalInertia !== 0){
+            Matter.Body.setInertia(this.body, totalInertia);
+        };
     };//
     recalculateCM(){
         if (!this.cells){
@@ -194,9 +339,7 @@ class PhysicalObject{
                 CMy = ((this.cells[c][0][1] + this.cells[c][1][1])/2)*this.cells[c][2]/this.body.mass
             };
         };
-        console.log(this.body.position);
         Matter.Body.setCentre(this.body, Matter.Vector.create(CMx, CMy));
-        console.log(this.body.position);
         this.divisionPosition = [CMx, CMy];
     };//
     getDivision(){
@@ -204,31 +347,52 @@ class PhysicalObject{
             return false;
         };
         let recalculatedCells = [];
-        for(c in this.cells){
+        for(let c in this.cells){
             recalculatedCells.push([
-                [this.body.position.x + (this.cells[c][0][0] - this.divisionPosition[0])*Math.cos(this.body.angle - this.divisionAngle) - (this.cells[c][0][1] - this.divisionPosition[1])*Math.sin(this.body.angle - this.divisionAngle),
-                this.body.position.y + (this.cells[c][0][0] - this.divisionPosition[0])*Math.sin(this.body.angle - this.divisionAngle) + (this.cells[c][0][1] - this.divisionPosition[1])*Math.cos(this.body.angle - this.divisionAngle)],
-                [this.body.position.x + (this.cells[c][1][0] - this.divisionPosition[0])*Math.cos(this.body.angle - this.divisionAngle) - (this.cells[c][1][1] - this.divisionPosition[1])*Math.sin(this.body.angle - this.divisionAngle),
-                this.body.position.y + (this.cells[c][1][0] - this.divisionPosition[0])*Math.sin(this.body.angle - this.divisionAngle) + (this.cells[c][1][1] - this.divisionPosition[1])*Math.cos(this.body.angle - this.divisionAngle)]
+                [this.body.position.x + (this.cells[c][0][0] - this.divisionPosition[0])*Math.cos(Math.PI*(this.body.angle - this.divisionAngle)/180) - (this.cells[c][0][1] - this.divisionPosition[1])*Math.sin(Math.PI*(this.body.angle - this.divisionAngle)/180),
+                this.body.position.y + (this.cells[c][0][0] - this.divisionPosition[0])*Math.sin(Math.PI*(this.body.angle - this.divisionAngle)/180) + (this.cells[c][0][1] - this.divisionPosition[1])*Math.cos(Math.PI*(this.body.angle - this.divisionAngle)/180)],
+                [this.body.position.x + (this.cells[c][1][0] - this.divisionPosition[0])*Math.cos(Math.PI*(this.body.angle - this.divisionAngle)/180) - (this.cells[c][1][1] - this.divisionPosition[1])*Math.sin(Math.PI*(this.body.angle - this.divisionAngle)/180),
+                this.body.position.y + (this.cells[c][1][0] - this.divisionPosition[0])*Math.sin(Math.PI*(this.body.angle - this.divisionAngle)/180) + (this.cells[c][1][1] - this.divisionPosition[1])*Math.cos(Math.PI*(this.body.angle - this.divisionAngle)/180)]
             ,this.cells[c][2]]);
         };
         return recalculatedCells;
     };//Transforms divided topology
     attachForce(force){
-        force.attachObject(this);
-        this.forces.push(force);
+        this.bonds.push(force.attachObject(this));
     };
-    detachForce(force){
-        let index = this.forces.indexOf(force);
+    attachForceDivision(force){
+        //let toAverage = [];
+        for(let i in this.divisionPhantom.getPhantoms()){
+            let newBond = force.attachObject(this.divisionPhantom.getPhantoms()[i])
+            this.bonds.push(newBond);
+            //toAverage.push(newBond);
+        };
+        //let averagingBond = new PhantomForceObjectBond(this, force, this.visualizationBond.visualizer, toAverage);
+        //averagingBond.hide();
+        //this.bonds.push(averagingBond);
+        this.divisionForceAttached = true;//does not account for deleting forces
+    };
+    detachBond(bond){
+        let index = this.bonds.indexOf(bond);
         if (index != -1){
-            this.forces[index].detachObject(this);
-            this.forces.splice(index, 1);
+            this.bonds.splice(index, 1);
         };
     };
-    updateForces(){
-        for (let i = 0; i < this.forces.length; i++){
-            this.forces[i].applyForce(this);
-            this.body.torque = this.forces[i].getTorque(this);
+    detachForce(force){
+        for(i in this.bonds){
+            if(this.bonds[i].getForce() === force){
+                this.bonds[i].delete();
+            };
+        };
+    };
+    updateForces(){//Rewrite
+        if(this.divisionPhantom !== undefined & this.divisionForceAttached){//need a boost to performance
+            this.divisionPhantom.update();
+        };
+        for (let i = 0; i < this.bonds.length; i++){
+            this.bonds[i].recalculateForce();
+            this.bonds[i].applyForce(this.getBody());
+            //this.forces[i].applyForce(this);
         };
     };
     saveInitial(){
@@ -255,7 +419,11 @@ class PhysicalObject{
             this.returnToInitial();
         })
         Matter.Composite.add(engine.world, this.body);
+        engine.SVGvisualizer.addObject(this);
         Matter.Events.trigger(engine, "objectAdded", {physicalObject: this, overridePolygon: overridePolygon})
+        if(this.cells){
+            this.divisionPhantom = new PhantomParent(this);
+        };
     };
     setVisualizationBond(bond){
         this.visualizationBond = bond;
@@ -264,8 +432,8 @@ class PhysicalObject{
         return this.body;
     };
     delete(){
-        for(let f in this.forces){
-            this.detachForce(this.forces[f]);
+        for(let b in this.bonds){
+            this.bonds[b].delete();
         };
         Matter.Composite.remove(engine.world, this.body);
         Matter.Events.trigger(engine, "objectDeleted", {physicalObject: this})
@@ -294,14 +462,18 @@ var objectMananger = new ObjectMannager(engine);
 
 
 let f = new Gravity();
-objectMananger.addGlobalForce(f);
 let a = new PhysicalObject(0, 0, {type: "polygon", sides:7, radius: 80});
 let b = new PhysicalObject(300, 300, {type: "polygon", sides:3, radius: 20});
 let c = new PhysicalObject(300, -300, {type: "polygon", sides:90, radius: 60});
 a.addToEngine(engine);
+a.attachForceDivision(f);
 b.addToEngine(engine);
+b.attachForceDivision(f);
+console.log(b.cells);
+console.log(b.getDivision());
 c.addToEngine(engine);
-//a.attachForce(f);
+c.attachForceDivision(f);
+a.attachForce(f);
 
 let btnlist = document.getElementsByClassName("actbtn");
 
@@ -440,6 +612,8 @@ for(let i = 0; i < toolButtons.length; i++){
     toolContainer.appendTo(btn);
     toolContainer.hide();
 };
+
+nav.activate();
 
 var lastUpdate = Date.now();
 window.simulationLoop = setInterval(() => {

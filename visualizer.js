@@ -35,6 +35,9 @@ class visualizationBond{
         this.image.remove();
         this.outlineObjects.remove();
     };
+    getVisualizer(){
+        return this.visualizer;
+    };
 };
 
 class SVGRender{//ADD CULLING
@@ -42,6 +45,9 @@ class SVGRender{//ADD CULLING
         return new SVGRender(obj);
     }
     constructor(obj){
+
+        this.forceBonds = [];
+        this.forceVisualsScale = 0.0001;
 
         this.tools = [];
         this.selected = [];//VisualizationBonds, containing objects that tools act on
@@ -162,12 +168,47 @@ class SVGRender{//ADD CULLING
             }
         });
 
+        //property menu
+
+        this.propertymenuTag = `<div class = "property_menu" style = "position: absolute;">
+        </div>
+        `
+        this.propertymenu = $(this.propertymenuTag).appendTo(this.JQueryElement.parent());
+        this.propertymenu.css("bottom", `${$("body").height() - (this.JQueryElement.offset().top + this.JQueryElement.height())}px`);
+        this.propertymenu.css("left", `${this.JQueryElement.offset().left}px`);
+        
+        this.propertyImage = $('<img src="icons/openproperties.png" draggable = "false" style = "width:12px;height:12px;grid-column:1;grid-row:1;">');
+        this.propertyImage.appendTo(this.propertymenu);
+
+        this.propertyTitle = $('<label class="property_title">Свойства ничего</label>');
+        this.propertyTitle.appendTo(this.propertymenu);
+
+        this.properties = $('<div class = "properties"></div>');
+        this.properties.appendTo(this.propertymenu);
+
+        this.propertyImage.on("click", ()=>{
+            if(this.properties.is(":visible")){
+                //this.properties.hide();
+                this.propertyImage.attr({
+                    src: "icons/openproperties.png"
+                });
+            }else{
+                //this.properties.show();
+                this.propertyImage.attr({
+                    src: "icons/closeproperties.png"
+                });
+            };
+        });
+
+        //property menu end
+
         Matter.Events.on(this.engine, "afterUpdate", (event)=>{
             this.update();
         });
-        Matter.Events.on(this.engine, "objectAdded", (event)=>{
-            this.addObject(event.physicalObject, event.overridePolygon);
-        });
+        this.engine.SVGvisualizer = this;//KINDA VERY BAD
+        //Matter.Events.on(this.engine, "objectAdded", (event)=>{
+        //    this.addObject(event.physicalObject, event.overridePolygon);
+        //});
         Matter.Events.on(this.engine, "objectDeleted", (event)=>{
             for (let i = 0; i < this.visualizationBonds.length; i++){
                 if(this.visualizationBonds[i].getObjectImagePair().object === event.physicalObject){
@@ -228,6 +269,7 @@ class SVGRender{//ADD CULLING
             img.cy(this.scale*(obj.getBody().position.y - this.pointTopLeft[1]));
             img.transform({ rotate: obj.getBody().angle});
         };
+        this.updateForceVisuals();
     }
     scaleView(factor, screenX, screenY){
         for(let i = 0; i < this.scaleViewCallbacks.length; i ++){
@@ -332,6 +374,38 @@ class SVGRender{//ADD CULLING
             obj.getObjectImagePair().image.children().opacity(obj   .getObjectImagePair().object.opt.opacity);
             obj.getOutlineObjects().opacity(0);
             this.selected.splice(index, 1);
+        };
+    };
+
+    addForceVisual(objectForceBond){//Fix arrows
+        this.forceBonds.push(objectForceBond);
+        let force = objectForceBond.getForceApplied();
+        let image = this.SVGCanvas.line(
+            (force[0].x - this.pointTopLeft[0])*this.scale,
+            (force[0].y - this.pointTopLeft[1])*this.scale,
+            (force[0].x + this.forceVisualsScale*force[1].x - this.pointTopLeft[0])*this.scale,
+            (force[0].y + this.forceVisualsScale*force[1].y - this.pointTopLeft[1])*this.scale
+        ).stroke({ width: objectForceBond.getVisuals().strokeWidth, color:  objectForceBond.getVisuals().strokeColor}).marker('end', 10, 10, function(add) {
+            add.path('M 0 0 L 10 5 L 0 10 z').fill(objectForceBond.getVisuals().strokeColor).stroke({ width: 1});
+        });
+        objectForceBond.setSVGImage(image);
+    };
+    removeForceVisual(objectForceBond){
+        let index = this.forceBonds.indexOf(objectForceBond);
+        if (index != -1){
+            this.forceBonds.splice(index, 1);
+            objectForceBond.getSVGImage().remove();
+        };
+    };//TODO
+    updateForceVisuals(){
+        for(let i in this.forceBonds){
+            let force = this.forceBonds[i].getForceApplied();
+            this.forceBonds[i].getSVGImage().attr({
+                x1:(force[0].x - this.pointTopLeft[0])*this.scale,
+                y1:(force[0].y - this.pointTopLeft[1])*this.scale,
+                x2:(force[0].x + this.forceVisualsScale*force[1].x - this.pointTopLeft[0])*this.scale,
+                y2:(force[0].y + this.forceVisualsScale*force[1].y - this.pointTopLeft[1])*this.scale
+            });
         };
     };
 }

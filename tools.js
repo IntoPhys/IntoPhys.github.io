@@ -92,9 +92,9 @@ class NavigationTool extends Tool{
         })
         .on("mousemove.navigation",  (e) => {
             if (this.mouseDown) {
-                let dScreenX = this.mousePosition[0] - e.offsetX;
-                let dScreenY = this.mousePosition[1] - e.offsetY;
-                this.visualizer.moveView(dScreenX, dScreenY);
+                let doffsetX = this.mousePosition[0] - e.offsetX;
+                let doffsetY = this.mousePosition[1] - e.offsetY;
+                this.visualizer.moveView(doffsetX, doffsetY);
             }
             this.mousePosition = [e.offsetX, e.offsetY];
         })
@@ -236,6 +236,167 @@ class SelectionTool extends Tool{
             return "Снять выделение с объекта/объектов"
         };
     };
+};
+
+class PinPointTool{
+
+};
+
+class SpringTool extends Tool{
+    constructor (visualizer){
+        super(visualizer);
+
+        this.style = {
+            pointColor1: "aqua",
+            pointColor2: "green",
+            pointImpossibleColor: "red",
+            pointSize: 5,
+            pointCursorStroke: 1,
+            lineSize: 3,
+        };
+
+        //Declaring special mouse cursor
+        this.firstPointCreated = false;
+        this.mousePosition = [0, 0];
+        this.SVGMouse = this.visualizer.getSVGCanvas().circle(this.style.pointSize).fill("none").stroke({width: this.style.pointCursorStroke , color: this.pointColor1}).cx(this.mousePosition[0]).cy(this.mousePosition[1]);
+        this.SVGMouse.hide();
+        
+        this.positionTolerance = [5, 5];//Tolerance of clicking a point
+        this.points = [];
+        this.pointsSVG = [];
+
+        this.objectA = undefined;
+        this.objectB = undefined;
+
+        this.visualizer.on("moveview", (dx, dy) => {this.movePoints(dx, dy)});
+        this.visualizer.on("scaleview", (f, x, y) => {this.scalePoints(f, x, y)});
+    };
+    movePoints(dx, dy){
+        for(let i = 0; i < this.pointsSVG.length; i ++){
+            this.pointsSVG[i].cx(this.pointsSVG[i].cx() - dx);
+            this.pointsSVG[i].cy(this.pointsSVG[i].cy() - dy);
+        };
+    };
+    scalePoints(f, x, y){
+        for(let i = 0; i < this.pointsSVG.length; i ++){
+            this.pointsSVG[i].cx(f*this.pointsSVG[i].cx() + (1 - f)*x);
+            this.pointsSVG[i].cy(f*this.pointsSVG[i].cy() + (1 - f)*y);
+        };
+    };
+
+    intersectionPhysicalObject(physicalObject, line){//TODO, check if segment or polygon intersect, CCW polygon
+        let objParts = physicalObject.getBody().parts;
+
+        let lineVertices = Matter.Vertices.create([
+            {x: this.visualizer.toSimulationCoordinates(line[0])[0], y: this.visualizer.toSimulationCoordinates(line[0])[1]},
+            {x: this.visualizer.toSimulationCoordinates(line[1])[0], y: this.visualizer.toSimulationCoordinates(line[1])[1]},
+        ],physicalObject.getBody());//far from optimal
+        
+        if(!Matter.Bounds.overlaps(Matter.Bounds.create(objParts[0].vertices),(Matter.Bounds.create(lineVertices)))){
+            return false;
+        };
+
+        for (let i = 0; i < objParts.length; i++) {
+            let objPartVertices = objParts[i].vertices;
+            if (i === 0 && objParts.length > 1) {
+                continue;
+            };
+            for (let j = 0; j < objPartVertices.length - 1; j++) { 
+                if (this.doIntersect([objPartVertices[j].x, objPartVertices[j].y], [objPartVertices[j + 1].x, objPartVertices[j + 1].y], this.visualizer.toSimulationCoordinates(line[0]), this.visualizer.toSimulationCoordinates(line[1]))){
+                    return true;
+                };
+            };
+            if (this.doIntersect([objPartVertices[0].x, objPartVertices[0].y], [objPartVertices.slice(-1)[0].x, objPartVertices.slice(-1)[0].y], this.visualizer.toSimulationCoordinates(line[0]), this.visualizer.toSimulationCoordinates(line[1]))){
+                return true;
+            };
+        };
+        return false;
+    };
+  
+    pointPossible(pointX, pointY){
+        let point = Matter.Vector.create(pointX, pointY);
+        let objs = this.visualizer.getObjects();
+        if(objs.length === 0){
+            return true;
+        };
+        for(let i = 0; i < objs.length; i ++){
+            let objParts = objs[i].getBody().parts;
+            for(let j = 0; j < objParts.length; j ++){
+                if(objParts.length > 1 & j === 0){
+                    continue;
+                };
+                if(Matter.Vertices.contains(objParts[j].vertices, point)){
+                    if(!this.objectA){
+                        this.objectA = objs[i];
+                    }else if(!this.objectB){
+                        this.objectB = objs[i];
+                    };
+                    return true;
+                };
+            };
+        };
+        return false;
+    };
+    activate(){
+        this.visualizer.deactivateOtherTools(this);
+        this.SVGMouse.show();
+        this.visualizer.getJQuery().attr("cursor", "none");
+        //MOUSEUP OUTSIDE OF SVG BUG PRESENT
+        this.visualizer.getJQuery().on("mousemove.springcreation", (e) => {
+            this.mousePosition = [e.offsetX, e.offsetY];
+            this.SVGMouse.cx(this.mousePosition[0]).cy(this.mousePosition[1]);
+            if(!this.pointPossible(this.mousePosition[0], this.mousePosition[1])){
+                this.SVGMouse.stroke({color:this.style.pointImpossibleColor});
+            }else{
+                if(this.firstPointCreated){
+                    this.SVGMouse.stroke({color:this.style.pointColor2});
+                }else{
+                    this.SVGMouse.stroke({color:this.style.pointColor1});
+                };
+            };
+        })
+        .on("mouseleave.springcreation", (e) => {
+            this.SVGMouse.hide();
+        }).on("mouseenter.springcreation", (e) => {
+            this.SVGMouse.show();
+        }).on("click.springcreation", (e) => {
+            this.addPoint(e.offsetX, e.offsetY);
+        });
+        super.activate();
+    };
+    addPoint(x, y){
+        if(this.pointPossible(x, y)){
+            if(this.firstPointCreated){
+                //end drawing
+                return;
+            };
+            this.pointsSVG.push(this.visualizer.getSVGCanvas().circle(this.style.pointSize).fill({color: this.style.pointColor1}).stroke({width: this.style.pointCursorStroke , color: this.style.pointColor}).cx(x).cy(y));
+            this.SVGMouse.stroke({width: this.style.pointCursorStroke , color: this.style.pointColor2});
+            this.firstPointCreated = true;
+        };
+    };
+
+    deactivate(){
+        this.visualizer.getJQuery().attr("cursor", "default");
+        super.deactivate();
+        this.visualizer.getJQuery().off(".springcreation");
+        this.SVGMouse.hide();
+        for(let i = 0; i < this.pointsSVG.length; i++){
+            this.pointsSVG[i].remove();
+        };
+        this.pointsSVG = [];
+        this.firstPointCreated = false;
+    };
+    getIcon(){
+        return "./icons/tools/unknown.png";//TODO  
+    };
+    getDescription(){
+        return "Создаёт пружину между двумя объектами";
+    };
+};
+
+class RodTool{
+
 };
 
 //TODO

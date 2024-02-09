@@ -3,7 +3,8 @@ window.g_of_planets = {
     "True Earth equator": 9.8144,
     "Effective Earth equator": 9.7805,
     "True Earth pole": 9.8322,
-    "Effective Earth pole": 9.8322
+    "Effective Earth pole": 9.8322,
+    "one": 1
 }
 const wheelScaleFactor = 1.1;
 
@@ -123,7 +124,7 @@ class CelestialGravity extends Force{
     };
 }
 
-class Gravity extends Force{//TODO: Add torque effect
+class Gravity extends Force{
     constructor(){
         super();
     };
@@ -142,7 +143,52 @@ class Gravity extends Force{//TODO: Add torque effect
         };
         bond.setForceApplied(bond.getObject().getBody().position, force);
     };
-}
+};
+
+class ElasticForce extends Force{//Suitable only for 2 objects
+    constructor(objectA, pointA, objectB, pointB, stiffness, visualize = true){
+        super();
+        this.stiffness = stiffness;
+        this.length = Matter.Vector.magnitude(Matter.Vector.sub(pointA, pointB));
+        this.objectA = objectA; this.objectB = objectB;
+        this.objectPositionDeltaA = Matter.Vector.sub(pointA, objectA.getBody().position);
+        this.objectPositionDeltaB = Matter.Vector.sub(pointB, objectB.getBody().position);
+
+        this.drawn = false;
+        this.visualize = visualize;
+    };
+    updateForce(bond){
+        let force = this.length - Matter.Vector.magnitude(Matter.Vector.sub(
+            Matter.Vector.add(this.objectA.getBody().position, this.objectPositionDeltaA),
+            Matter.Vector.add(this.objectB.getBody().position, this.objectPositionDeltaB)
+        ));
+        if(force === 0){
+            if(bond.getObject() === this.objectA){
+                var delta = this.objectPositionDeltaA;
+            }else{
+                force = Matter.Vector.neg(force);
+                var delta = this.objectPositionDeltaB;
+            };
+            bond.setForceApplied(Matter.Vector.add(bond.getObject().getBody().position, delta), Matter.Vector.create(0, 0));
+            return;
+        };
+        force = Matter.Vector.mult(Matter.Vector.sub(
+            Matter.Vector.add(this.objectB.getBody().position, this.objectPositionDeltaB),
+            Matter.Vector.add(this.objectA.getBody().position, this.objectPositionDeltaA)
+        ), this.stiffness*force/(this.length - force));
+        if(bond.getObject() === this.objectA){
+            force = Matter.Vector.neg(force);
+            var delta = this.objectPositionDeltaA;
+        }else{
+            var delta = this.objectPositionDeltaB;
+        };
+        bond.setForceApplied(Matter.Vector.add(bond.getObject().getBody().position, delta), force);
+
+        if(this.visualize&!this.drawn){
+            //draw object TODO
+        };
+    };
+};
 
 //phantoms
 //Calculates net force
@@ -461,20 +507,21 @@ var renderSVG = SVGRender.create({
 var objectMananger = new ObjectMannager(engine);
 
 
-let f = new Gravity();
 let a = new PhysicalObject(0, 0, {type: "polygon", sides:7, radius: 80});
 let b = new PhysicalObject(300, 300, {type: "polygon", sides:3, radius: 20});
 let c = new PhysicalObject(300, -300, {type: "polygon", sides:90, radius: 60});
 a.addToEngine(engine);
-a.attachForceDivision(f);
 b.addToEngine(engine);
-b.attachForceDivision(f);
-console.log(b.cells);
-console.log(b.getDivision());
 c.addToEngine(engine);
-c.attachForceDivision(f);
-a.attachForce(f);
 
+/*
+Matter.Composite.add(engine.world, Matter.Constraint.create({
+    pointA: { x: 0, y: 0 },
+    bodyB: a.getBody(),
+    length: 0,
+    stiffness: 1
+}));
+*/
 let btnlist = document.getElementsByClassName("actbtn");
 
 window.paused = false;
@@ -508,9 +555,10 @@ for (let btn of btnlist){
     });
 };
 
-nav = new NavigationTool(renderSVG);
-sel_plus = new SelectionTool(renderSVG);
-sel_minus = new SelectionTool(renderSVG);
+let nav = new NavigationTool(renderSVG);
+let sel_plus = new SelectionTool(renderSVG);
+let sel_minus = new SelectionTool(renderSVG);
+let spr = new SpringTool(renderSVG);
 sel_minus.selectionMode = -1;
 //cr_polygon = new PolygonCreationTool(renderSVG);
 //Creating tool interface
@@ -518,11 +566,13 @@ const tagDataToolNameReferance = {
     "navigation": [nav],
     "selection": [sel_plus, sel_minus],
     //"creation": [cr_polygon]
+    "spring": [spr]
 };
 const selectedTools = {
     "navigation": 0,
     "selection": 0,
     //"creation": 0
+    "spring": 0
 };
 const BRTolerance = [5, 5];//Determines how much space is provided to multitool selection in bottom right corner
 const timeTolerance = 500;//Determines how much time

@@ -122,7 +122,7 @@ class SVGRender{//ADD CULLING
         let deleteButton = $('<label class="menu_button context_menu_button">Удалить объекты(Delete)</label>');
         deleteButton.appendTo(this.contextmenu);
         deleteButton.on("click", ()=>{
-            let selected = this.getSelectedObjects()
+            let selected = this.getSelectedObjects();
             for (let i in selected){
                 selected[i].delete();
             };
@@ -131,12 +131,58 @@ class SVGRender{//ADD CULLING
 
         $(document).on("keyup", (e)=>{
             if (e.originalEvent.key === "Delete"){
-                let selected = this.getSelectedObjects()
+                let selected = this.getSelectedObjects();
                 for (let i in selected){
                     selected[i].delete();
                 };
                 this.contextmenu.hide();
             };
+        });
+
+        $(sectionDivision).appendTo(this.contextmenu);
+
+        let constantForceButton = $('<label class="menu_button context_menu_button">Добавить постоянную силу</label>');
+        constantForceButton.appendTo(this.contextmenu);
+        constantForceButton.on("click", ()=>{
+            let force = new ConstantForce(0, 100);
+            let selected = this.getSelectedObjects();
+            for (let i in selected){
+                selected[i].attachForce(force);
+            };
+            this.contextmenu.hide();
+        });
+
+        let attractionButton = $('<label class="menu_button context_menu_button">Добавить силу тяжести</label>');
+        attractionButton.appendTo(this.contextmenu);
+        attractionButton.on("click", ()=>{
+            let force = new CelestialGravity("one");
+            let selected = this.getSelectedObjects();
+            for (let i in selected){
+                selected[i].attachForce(force);
+            };
+            this.contextmenu.hide();
+        });
+
+        let gravityButton = $('<label class="menu_button context_menu_button">Добавить силу гравитации(без учёта геометрии)</label>');
+        gravityButton.appendTo(this.contextmenu);
+        gravityButton.on("click", ()=>{
+            let force = new Gravity();
+            let selected = this.getSelectedObjects();
+            for (let i in selected){
+                selected[i].attachForce(force);
+            };
+            this.contextmenu.hide();
+        });
+
+        let gravityExactButton = $('<label class="menu_button context_menu_button">Добавить силу гравитации</label>');
+        gravityExactButton.appendTo(this.contextmenu);
+        gravityExactButton.on("click", ()=>{
+            let force = new Gravity();
+            let selected = this.getSelectedObjects();
+            for (let i in selected){
+                selected[i].attachForceDivision(force);
+            };
+            this.contextmenu.hide();
         });
 
         //end of creating buttons
@@ -170,6 +216,16 @@ class SVGRender{//ADD CULLING
 
         //property menu
 
+        /*
+        this.propertyContainer = ```
+        <div class = "property_menu" style = "position: absolute; display: flex;">
+        <div></div>
+        <div style= "display: flex; flex-direction: row;">
+        <img src="icons/openproperties.png" draggable = "false" style = "width:12px;height:12px;grid-column:1;grid-row:1;">
+        </div>
+        </div>
+        ```
+
         this.propertymenuTag = `<div class = "property_menu" style = "position: absolute;">
         </div>
         `
@@ -177,17 +233,20 @@ class SVGRender{//ADD CULLING
         this.propertymenu.css("bottom", `${$("body").height() - (this.JQueryElement.offset().top + this.JQueryElement.height())}px`);
         this.propertymenu.css("left", `${this.JQueryElement.offset().left}px`);
         
+        this.imageContainer = $('<div></div>');
+        
         this.propertyImage = $('<img src="icons/openproperties.png" draggable = "false" style = "width:12px;height:12px;grid-column:1;grid-row:1;">');
         this.propertyImage.appendTo(this.propertymenu);
 
         this.propertyTitle = $('<label class="property_title">Свойства ничего</label>');
         this.propertyTitle.appendTo(this.propertymenu);
 
-        this.properties = $('<div class = "properties"></div>');
-        this.properties.appendTo(this.propertymenu);
+        this.propertyContainer = $('<div class="property_container"></div>');
+        this.propertyContainer.prependTo(this.propertymenu);
+
 
         this.propertyImage.on("click", ()=>{
-            if(this.properties.is(":visible")){
+            if(this.propertyContainer.is(":visible")){
                 //this.properties.hide();
                 this.propertyImage.attr({
                     src: "icons/openproperties.png"
@@ -199,7 +258,7 @@ class SVGRender{//ADD CULLING
                 });
             };
         });
-
+        */
         //property menu end
 
         Matter.Events.on(this.engine, "afterUpdate", (event)=>{
@@ -218,6 +277,7 @@ class SVGRender{//ADD CULLING
                 };
             };
         });
+        
     }
     addObject(physicalObject, overridePolygon = undefined) {
         let xPosition = physicalObject.getBody().position.x;
@@ -271,12 +331,12 @@ class SVGRender{//ADD CULLING
         };
         this.updateForceVisuals();
     }
-    scaleView(factor, screenX, screenY){
+    scaleView(factor, offsetX, offsetY){
         for(let i = 0; i < this.scaleViewCallbacks.length; i ++){
-            this.scaleViewCallbacks[i](factor, screenX, screenY);
+            this.scaleViewCallbacks[i](factor, offsetX, offsetY);
         };
-        this.pointTopLeft[0] += (1 - 1/factor)*screenX/this.scale;
-        this.pointTopLeft[1] += (1 - 1/factor)*screenY/this.scale;
+        this.pointTopLeft[0] += (1 - 1/factor)*offsetX/this.scale;
+        this.pointTopLeft[1] += (1 - 1/factor)*offsetY/this.scale;
         for (let i = 0; i < this.visualizationBonds.length; i++){
             let img = this.visualizationBonds[i].getObjectImagePair().image;
             img.size(factor*img.width(), null);
@@ -291,12 +351,12 @@ class SVGRender{//ADD CULLING
             this.scaleViewCallbacks.push(callback);
         };
     };
-    moveView(dScreenX, dScreenY){
+    moveView(doffsetX, doffsetY){
         for(let i = 0; i < this.moveViewCallbacks.length; i ++){
-            this.moveViewCallbacks[i](dScreenX, dScreenY);
+            this.moveViewCallbacks[i](doffsetX, doffsetY);
         };
-        this.pointTopLeft[0] += dScreenX/this.scale;
-        this.pointTopLeft[1] += dScreenY/this.scale;
+        this.pointTopLeft[0] += doffsetX/this.scale;
+        this.pointTopLeft[1] += doffsetY/this.scale;
         this.update();
     };
     followObject(object){

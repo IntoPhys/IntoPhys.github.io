@@ -215,50 +215,60 @@ class SVGRender{//ADD CULLING
         });
 
         //property menu
-
-        /*
-        this.propertyContainer = ```
-        <div class = "property_menu" style = "position: absolute; display: flex;">
-        <div></div>
-        <div style= "display: flex; flex-direction: row;">
-        <img src="icons/openproperties.png" draggable = "false" style = "width:12px;height:12px;grid-column:1;grid-row:1;">
-        </div>
-        </div>
-        ```
-
-        this.propertymenuTag = `<div class = "property_menu" style = "position: absolute;">
-        </div>
-        `
-        this.propertymenu = $(this.propertymenuTag).appendTo(this.JQueryElement.parent());
-        this.propertymenu.css("bottom", `${$("body").height() - (this.JQueryElement.offset().top + this.JQueryElement.height())}px`);
-        this.propertymenu.css("left", `${this.JQueryElement.offset().left}px`);
-        
-        this.imageContainer = $('<div></div>');
-        
-        this.propertyImage = $('<img src="icons/openproperties.png" draggable = "false" style = "width:12px;height:12px;grid-column:1;grid-row:1;">');
-        this.propertyImage.appendTo(this.propertymenu);
-
-        this.propertyTitle = $('<label class="property_title">Свойства ничего</label>');
-        this.propertyTitle.appendTo(this.propertymenu);
-
-        this.propertyContainer = $('<div class="property_container"></div>');
-        this.propertyContainer.prependTo(this.propertymenu);
-
-
-        this.propertyImage.on("click", ()=>{
-            if(this.propertyContainer.is(":visible")){
-                //this.properties.hide();
-                this.propertyImage.attr({
-                    src: "icons/openproperties.png"
-                });
-            }else{
-                //this.properties.show();
-                this.propertyImage.attr({
-                    src: "icons/closeproperties.png"
-                });
-            };
+        let parental = $(obj.element);
+        let container = $('<div class="properties"</div>') ;
+        container.css({
+          position:"absolute", 
+          display: "flex",
+          "flex-direction":"column",
+          width:"300px",
+          height: parental.height(),
+          top: parental.offset().top,
+          left: parental.offset().left
+         });
+        $("<div></div>").css({
+          "flex-basis":0,
+          "flex-grow":1,
+          opacity: 0,
+        }).appendTo(container);
+        this.topPart = $("<div></div>").attr({
+            class: "property_menu"
+        }).css({
+          height: "12px",
+          display:"flex",
+          "flex-direction": "row",
+        }).appendTo(container);
+        let btn = $("<img>").attr({
+          src: "./icons/openproperties.png"
+        }).css({
+          height: "12px",
+          width: "12px",
+          draggable: false
+        }).appendTo(this.topPart);
+        this.title = $("<label>Рандомное название </label>").css({
+          "font-size":"10px",
+          "align-self": "center",
+          "margin-left": "3px"
+        }).appendTo(this.topPart);
+        this.contents = $("<div></div>").attr({
+            class: "property_container"
+        }).css({
+          height: "auto",
+          display: "flex",
+          "flex-direction":"column"
+        }).appendTo(container);
+        //text, min, max, step, _default, callback
+        this.contents.hide();
+        btn.on("click",()=>{
+          if(this.contents.is(":visible")){
+            btn.attr({src: "./icons/openproperties.png"})
+            this.contents.hide();
+          }else{
+            btn.attr({src: "./icons/closeproperties.png"});
+            this.contents.show();
+          };
         });
-        */
+        container.appendTo(parental);
         //property menu end
 
         Matter.Events.on(this.engine, "afterUpdate", (event)=>{
@@ -277,8 +287,140 @@ class SVGRender{//ADD CULLING
                 };
             };
         });
+        this.setTitle("");
         
+    };
+
+    setTitle(text){
+        if(text.length === 0){
+            this.topPart.hide();
+            this.contents.hide();
+        }else{
+            this.topPart.show();
+            this.contents.show();
+        }
+        this.title.text(text);
+    };
+    addInput(JQuery){
+        this.contents.append(JQuery);
+    };
+    clearInputs(){
+        this.contents.children().remove();
     }
+
+    getFloatInput(text, min, max, step, _default, callback){
+        let JQwrapper = $("<div></div>").css({
+           width: "100%",
+          height:" fit-content",
+          display:"flex",
+          "flex-direction":"column"
+        });
+        JQwrapper.append($("<p>" + text + "</p>").css({
+          "margin-left": "1.125%",
+          "margin-right": "1.125%",
+          "text-indent": "1.125%",
+          "font-size": "10px",
+          height: "fit-content",
+          "margin-bottom": 0
+        }));
+        
+        let floatInput = $('<input type="number" class="input-group-text" data-bs-theme="dark"/>').attr({
+                min: min,
+                max: max,
+                step: step,
+        }).css({
+            "margin-left": "3.375%",
+            "margin-right": "1.125%",
+            height: "12px",
+            "font-size": "10px"
+        });
+        floatInput.val(_default);
+            
+        floatInput.on("change keyup", (e)=>{
+            if(e.type === "keyup" && e.originalEvent.key === "Backspace"){
+                return;
+            };
+
+            if(isNaN(parseFloat(floatInput.val()))){
+                floatInput.val(_default);
+            };
+            if(parseFloat(floatInput.val()) > max){
+                floatInput.val(max);
+            };
+            if(parseFloat(floatInput.val()) < min){
+                floatInput.val(min);
+            };
+            callback(parseFloat(floatInput.val()), e);
+        });
+        
+        JQwrapper.append(floatInput);
+        return JQwrapper;
+    };
+
+    getTextInput(text, _default, callback){
+        let JQwrapper = $("<div></div>").css({
+           width: "100%",
+          height:" fit-content",
+          display:"flex",
+          "flex-direction":"column"
+        });
+        JQwrapper.append($("<p>" + text + "</p>").css({
+          "margin-left": "1.125%",
+          "margin-right": "1.125%",
+          "text-indent": "1.125%",
+          "font-size": "10px",
+          height: "fit-content",
+          "margin-bottom": 0
+        }));
+        
+        let floatInput = $('<input type="text" class="input-group-text" data-bs-theme="dark"/>').css({
+            "margin-left": "3.375%",
+            "margin-right": "1.125%",
+            height: "12px",
+            "font-size": "10px"
+        });
+        floatInput.val(_default);
+            
+        floatInput.on("change keyup", (e)=>{
+            callback(floatInput.val(), e);
+        });
+        
+        JQwrapper.append(floatInput);
+        return JQwrapper;
+    };
+
+    getMultiTextInput(text, _default, callback){
+        let JQwrapper = $("<div></div>").css({
+           width: "100%",
+          height:" fit-content",
+          display:"flex",
+          "flex-direction":"column"
+        });
+        JQwrapper.append($("<p>" + text + "</p>").css({
+          "margin-left": "1.125%",
+          "margin-right": "1.125%",
+          "text-indent": "1.125%",
+          "font-size": "10px",
+          height: "fit-content",
+          "margin-bottom": 0
+        }));
+        
+        let floatInput = $('<textarea type="text" class="input-group-text" data-bs-theme="dark"/></textarea>').css({
+            "margin-left": "3.375%",
+            "margin-right": "1.125%",
+            height: "48px",
+            "font-size": "10px"
+        });
+        floatInput.val(_default);
+            
+        floatInput.on("change keyup", (e)=>{
+            callback(floatInput.val(), e);
+        });
+        
+        JQwrapper.append(floatInput);
+        return JQwrapper;
+    };
+
     addObject(physicalObject, overridePolygon = undefined) {
         let xPosition = physicalObject.getBody().position.x;
         let yPosition = physicalObject.getBody().position.y;

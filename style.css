@@ -114,25 +114,23 @@ body{
 
 /*Property menu*/
 
+.properties{
+    color: white;
+}
+
 .property_menu{
+    color: white;
     -webkit-user-select: none; /* Safari */
     -ms-user-select: none; /* IE 10 and IE 11 */
     user-select: none; /* Standard syntax */
     background-color: rgb(22, 22, 22);
-    width: 200px;
-    height: 24px;
-    min-height: 12px;
     border-radius: 2px;
 }
-.property_title{
-    color: white;
-    font-size: 12px;
-    align-self: center;
-    width: 100%;
-    margin-left: 3px;
-};
 
 .property_container{
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
     display: grid;
     background-color: #333333;
     height: 30px;

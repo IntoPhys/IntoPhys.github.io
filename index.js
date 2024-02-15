@@ -577,6 +577,9 @@ const selectedTools = {
 const BRTolerance = [5, 5];//Determines how much space is provided to multitool selection in bottom right corner
 const timeTolerance = 500;//Determines how much time
 let toolButtons = $(".toolbtn");
+toolButtons.css({
+    "z-index": 4
+});
 for(let i = 0; i < toolButtons.length; i++){
     let btn = toolButtons.eq(i);
     let tools = tagDataToolNameReferance[btn.attr("data-tool")];

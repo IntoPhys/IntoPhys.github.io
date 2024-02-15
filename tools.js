@@ -312,9 +312,8 @@ class SpringTool extends Tool{
         };
         return false;
     };
-  
-    pointPossible(pointX, pointY){
-        let point = Matter.Vector.create(pointX, pointY);
+
+    pointPossible(point){
         let objs = this.visualizer.getObjects();
         if(objs.length === 0){
             return true;
@@ -345,7 +344,7 @@ class SpringTool extends Tool{
         this.visualizer.getJQuery().on("mousemove.springcreation", (e) => {
             this.mousePosition = [e.offsetX, e.offsetY];
             this.SVGMouse.cx(this.mousePosition[0]).cy(this.mousePosition[1]);
-            if(!this.pointPossible(this.mousePosition[0], this.mousePosition[1])){
+            if(!this.pointPossible(this.visualizer.viewPointToWorld(this.mousePosition))){
                 this.SVGMouse.stroke({color:this.style.pointImpossibleColor});
             }else{
                 if(this.firstPointCreated){
@@ -365,12 +364,29 @@ class SpringTool extends Tool{
         super.activate();
     };
     addPoint(x, y){
-        if(this.pointPossible(x, y)){
+        if(this.pointPossible(this.visualizer.viewPointToWorld([x, y]))){
             if(this.firstPointCreated){
                 //end drawing
+                for(let i = 0; i < this.pointsSVG.length; i++){
+                    this.pointsSVG[i].remove();
+                };
+                this.pointsSVG = [];
+                this.firstPointCreated = false;
+
+               //Matter.Composites.chain(ropeA, 0.5, 0, -0.5, 0, { stiffness: 0.8, length: 2, render: { type: 'line' } });
+                Matter.Composite.add(engine.world, Matter.Constraint.create({
+                    bodyA: this.objectA.body,
+                    pointA: { x: 0, y: 0 },
+                    bodyB: this.objectB.body,
+                    pointB: { x: -25, y: 0 },
+                    stiffness: 0.5
+                }));
                 return;
             };
-            this.pointsSVG.push(this.visualizer.getSVGCanvas().circle(this.style.pointSize).fill({color: this.style.pointColor1}).stroke({width: this.style.pointCursorStroke , color: this.style.pointColor}).cx(x).cy(y));
+            this.pointsSVG.push(this.visualizer.getSVGCanvas()
+                .circle(this.style.pointSize)
+                .fill({color: this.style.pointColor1})
+                .stroke({width: this.style.pointCursorStroke , color: this.style.pointColor}).cx(x).cy(y));
             this.SVGMouse.stroke({width: this.style.pointCursorStroke , color: this.style.pointColor2});
             this.firstPointCreated = true;
         };

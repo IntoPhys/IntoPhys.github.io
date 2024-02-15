@@ -359,6 +359,10 @@ class SVGRender{//ADD CULLING
         this.pointTopLeft[1] += doffsetY/this.scale;
         this.update();
     };
+
+    viewPointToWorld(point) {
+        return Matter.Vector.create(point[0] + this.pointTopLeft[0], point[1] + this.pointTopLeft[1]);
+    }
     followObject(object){
         if(!object){
             this.objectToFollow = object;

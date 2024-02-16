@@ -82,8 +82,12 @@ class ForceObjectBond{//Forces need to be added after adding to engine
 class Force{
     bonds = []//Why array
     attachObject(obj){
-        let bond = new ForceObjectBond(obj, this, obj.visualizationBond.visualizer);
+        this.visualizer = obj.visualizationBond.visualizer;
+        let bond = new ForceObjectBond(obj, this, this.visualizer);
         this.bonds.push(bond);
+
+        this.onCreation();
+
         return bond;
     }
     detachBond(bond){
@@ -102,6 +106,16 @@ class Force{
     updateForce(bond){
         bond.setForceApplied(bond.getObject().getBody().position, Matter.Vector.create(0, 0));
     };
+    unite(other){
+        if(0){
+            return true;
+            this.onCreation();
+        }
+        return false;
+    }
+    onCreation(){
+        this.visualizer.clearInputs();
+    };
 }
 
 class ConstantForce extends Force{
@@ -111,6 +125,15 @@ class ConstantForce extends Force{
     };
     updateForce(bond){
         bond.setForceApplied(bond.getObject().getBody().position, this.force);
+    };
+    onCreation(){
+        super.onCreation()
+        this.visualizer.addInput(
+            this.visualizer.getFloatInput("Горизонтальная компонента силы(положительное направление - вправо), H", undefined, undefined, 0.01, this.force.x, (f) => {this.force.x = f})
+        );
+       this.visualizer.addInput(
+            this.visualizer.getFloatInput("Вертикальная компонента силы(положительное направление - вверх), H", undefined, undefined, 0.01, -this.force.y, (f) => {this.force.y = -f})
+        ); 
     };
 }
 
@@ -188,6 +211,12 @@ class ElasticForce extends Force{//Suitable only for 2 objects
             //draw object TODO
         };
     };
+    onCreation(){
+        super.onCreation()
+        this.visualizer.addInput(
+            this.visualizer.getFloatInput("Жёсткость пружины, H/м", 0, undefined, 0.01, this.force.x, (f) => {this.force.x = f})
+        ); 
+    };
 };
 
 //phantoms
@@ -246,7 +275,8 @@ class PhantomObject{
             (this.phantomParent.getDivision()[this.phantomIndex][0][0] + this.phantomParent.getDivision()[this.phantomIndex][1][0])/2,
             (this.phantomParent.getDivision()[this.phantomIndex][0][1] + this.phantomParent.getDivision()[this.phantomIndex][1][1])/2
         );
-    }
+        this.mass = this.phantomParent.getDivision()[this.phantomIndex][2];
+    };
     getBody(){
         return {position: this.position, mass: this.mass}
     };
@@ -489,10 +519,21 @@ class PhysicalObject{
         let visualizer = this.visualizationBond.getVisualizer();
         visualizer.clearInputs();
         visualizer.addInput(
+            visualizer.getFloatInput("Масса", 0, undefined, 0.01, this.body.mass, (f) => {
+                for(let i in this.cells){
+                    this.cells[i][2] *= f/this.body.mass
+                };
+                Matter.Body.setMass(this.body, f);
+            })
+        );
+        visualizer.addInput(
             visualizer.getFloatInput("Коэффициент трения покоя", 0, 1, 0.01, this.body.frictionStatic, (f) => {this.body.frictionStatic = f})
         );
         visualizer.addInput(
             visualizer.getFloatInput("Коэффициент трения скольжения", 0, 1, 0.01, this.body.friction, (f) => {this.body.friction = f})
+        );
+        visualizer.addInput(
+            visualizer.getColorInput("Цвет объекта", this.opt.color , (f) => {this.opt.color = f;this.visualizationBond.recolor(f);})
         );
         visualizer.setTitle("Редактирование свойств объекта");
     };

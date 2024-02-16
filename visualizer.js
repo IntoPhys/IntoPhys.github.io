@@ -1,5 +1,5 @@
 class visualizationBond{
-    constructor (visualizer, object, image, outlineObjects, dcx, dcy){
+    constructor (visualizer, object, image, outlineObjects, visuals, dcx, dcy){
         this.selected = false;
         this.visualizer = visualizer;
         object.setVisualizationBond(this);
@@ -7,12 +7,17 @@ class visualizationBond{
         this.outlineObjects = outlineObjects;//SVG collection
         this.object = object;
         this.object.rendererImage = this.image;
+        this.visuals = visuals;
         this.object.getImage = function(){
             return this.rendererImage;
         };
         this.dcx = dcx; // centers of image and object are not same because xd
         this.dcy = dcy;
-    }
+    };
+
+    getVisuals(){
+        return this.visuals;
+    };
 
     cx(x) { // if after rotation happening xd, probably problem is here
         this.image.cx(x + this.dcx*Math.cos(this.object.getBody().angle) - this.dcy*Math.sin(this.object.getBody().angle));
@@ -48,6 +53,9 @@ class visualizationBond{
     };
     getVisualizer(){
         return this.visualizer;
+    };
+    recolor(color){
+        this.visualizer.recolorBond(this, color);
     };
 };
 
@@ -427,7 +435,7 @@ class SVGRender{//ADD CULLING
         let multiTextInput = $('<textarea type="text" class="input-group-text" data-bs-theme="dark"/>').css({
             "margin-left": "3.375%",
             "margin-right": "1.125%",
-            height: "12px",
+            height: "48px",
             "font-size": "10px"
         });
         multiTextInput.val(_default);
@@ -459,17 +467,21 @@ class SVGRender{//ADD CULLING
         let colorInput = $('<input type="color" class="input-group-text" data-bs-theme="dark"/></textarea>').css({
             "margin-left": "3.375%",
             "margin-right": "1.125%",
-            height: "48px",
+            height: "24px",
             "font-size": "10px"
         });
         colorInput.val(_default);
             
-        colorInput.on("change mousemove", (e)=>{
+        colorInput.on("change", (e)=>{
             callback(colorInput.val(), e);
         });
         
         JQwrapper.append(colorInput);
         return JQwrapper;
+    };
+
+    recolorBond(bond, color){
+        bond.getVisuals().children().fill(color).stroke(color);
     };
 
     addObject(physicalObject, overridePolygon = undefined) {
@@ -499,7 +511,7 @@ class SVGRender{//ADD CULLING
         SVGObject.put(SVGObjectFront);
         outlineObjects.stroke({ color: this.selectionColor, width: this.selectionWidth}).fill(this.selectionColor);
         outlineObjects.opacity(0);
-        let bond = new visualizationBond(this, physicalObject, SVGObject, outlineObjects, SVGObject.cx(), SVGObject.cy());
+        let bond = new visualizationBond(this, physicalObject, SVGObject, outlineObjects, SVGObjectFront, SVGObject.cx(), SVGObject.cy());
         this.visualizationBonds.push(bond);
         bond.cx(this.scale*(xPosition - this.pointTopLeft[0]));
         bond.cy(this.scale*(yPosition - this.pointTopLeft[1]));

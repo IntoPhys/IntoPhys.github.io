@@ -1,5 +1,5 @@
 class visualizationBond{
-    constructor (visualizer, object, image, outlineObjects){
+    constructor (visualizer, object, image, outlineObjects, dcx, dcy){
         this.selected = false;
         this.visualizer = visualizer;
         object.setVisualizationBond(this);
@@ -10,6 +10,16 @@ class visualizationBond{
         this.object.getImage = function(){
             return this.rendererImage;
         };
+        this.dcx = dcx; // centers of image and object are not same because xd
+        this.dcy = dcy;
+    }
+
+    cx(x) { // if after rotation happening xd, probably problem is here
+        this.image.cx(x + this.dcx*Math.cos(this.object.getBody().angle) - this.dcy*Math.sin(this.object.getBody().angle));
+    }
+
+    cy(y) {
+        this.image.cy(y + this.dcx*Math.sin(this.object.getBody().angle) + this.dcy*Math.cos(this.object.getBody().angle));
     }
     getObjectImagePair(){
         return {
@@ -23,6 +33,7 @@ class visualizationBond{
     select(){
         this.selected = true;
         this.visualizer.addSlected(this);
+        this.object.onSelected();//KINDA VERY VERY BAD
     };
     unselect(){
         this.selected = false;
@@ -78,7 +89,13 @@ class SVGRender{//ADD CULLING
         `
 
         this.JQueryElement = $(this.SVGCanvas.node);
+        this.JQueryElement.css({
+            "z-index": 1,
+        })
         this.contextmenu = $(this.contextmenuTag).appendTo(this.JQueryElement.parent());
+        this.contextmenu.css({
+            "z-index": 2
+        })
 
         //creating buttons
 
@@ -224,7 +241,7 @@ class SVGRender{//ADD CULLING
           width:"300px",
           height: parental.height(),
           top: parental.offset().top,
-          left: parental.offset().left
+          left: parental.offset().left,
          });
         $("<div></div>").css({
           "flex-basis":0,
@@ -237,6 +254,7 @@ class SVGRender{//ADD CULLING
           height: "12px",
           display:"flex",
           "flex-direction": "row",
+          "z-index": 5
         }).appendTo(container);
         let btn = $("<img>").attr({
           src: "./icons/openproperties.png"
@@ -255,7 +273,8 @@ class SVGRender{//ADD CULLING
         }).css({
           height: "auto",
           display: "flex",
-          "flex-direction":"column"
+          "flex-direction":"column",
+          "z-index": 5
         }).appendTo(container);
         //text, min, max, step, _default, callback
         this.contents.hide();
@@ -373,19 +392,19 @@ class SVGRender{//ADD CULLING
           "margin-bottom": 0
         }));
         
-        let floatInput = $('<input type="text" class="input-group-text" data-bs-theme="dark"/>').css({
+        let textInput = $('<input type="text" class="input-group-text" data-bs-theme="dark"/>').css({
             "margin-left": "3.375%",
             "margin-right": "1.125%",
             height: "12px",
             "font-size": "10px"
         });
-        floatInput.val(_default);
+        textInput.val(_default);
             
-        floatInput.on("change keyup", (e)=>{
-            callback(floatInput.val(), e);
+        textInput.on("change keyup", (e)=>{
+            callback(textInput.val(), e);
         });
         
-        JQwrapper.append(floatInput);
+        JQwrapper.append(textInput);
         return JQwrapper;
     };
 
@@ -397,27 +416,59 @@ class SVGRender{//ADD CULLING
           "flex-direction":"column"
         });
         JQwrapper.append($("<p>" + text + "</p>").css({
-          "margin-left": "1.125%",
-          "margin-right": "1.125%",
-          "text-indent": "1.125%",
-          "font-size": "10px",
-          height: "fit-content",
-          "margin-bottom": 0
+            "margin-left": "1.125%",
+            "margin-right": "1.125%",
+            "text-indent": "1.125%",
+            "font-size": "10px",
+            height: "fit-content",
+            "margin-bottom": 0
         }));
         
-        let floatInput = $('<textarea type="text" class="input-group-text" data-bs-theme="dark"/></textarea>').css({
+        let multiTextInput = $('<textarea type="text" class="input-group-text" data-bs-theme="dark"/>').css({
+            "margin-left": "3.375%",
+            "margin-right": "1.125%",
+            height: "12px",
+            "font-size": "10px"
+        });
+        multiTextInput.val(_default);
+            
+        multiTextInput.on("change keyup", (e)=>{
+            callback(multiTextInput.val(), e);
+        });
+        
+        JQwrapper.append(multiTextInput);
+        return JQwrapper;
+    };
+
+    getColorInput(text, _default, callback){
+        let JQwrapper = $("<div></div>").css({
+           width: "100%",
+          height:"fit-content",
+          display:"block",
+        });
+
+        JQwrapper.append($("<label>" + text + "</label>").css({
+            "margin-left": "1.125%",
+            "margin-right": "1.125%",
+            "text-indent": "1.125%",
+            "font-size": "10px",
+            height: "fit-content",
+            "margin-bottom": 0
+        }));
+        
+        let colorInput = $('<input type="color" class="input-group-text" data-bs-theme="dark"/></textarea>').css({
             "margin-left": "3.375%",
             "margin-right": "1.125%",
             height: "48px",
             "font-size": "10px"
         });
-        floatInput.val(_default);
+        colorInput.val(_default);
             
-        floatInput.on("change keyup", (e)=>{
-            callback(floatInput.val(), e);
+        colorInput.on("change mousemove", (e)=>{
+            callback(colorInput.val(), e);
         });
         
-        JQwrapper.append(floatInput);
+        JQwrapper.append(colorInput);
         return JQwrapper;
     };
 
@@ -436,21 +487,22 @@ class SVGRender{//ADD CULLING
                 let vertices = [];
                 for (let i = 0; i < objPartVertices.length; i++) {
                     vertices.push(objPartVertices[i].x - xPosition, objPartVertices[i].y - yPosition);
+
                 };
                 SVGObject.polygon(vertices).fill(color).stroke(color).opacity(physicalObject.opt.opacity);
             };
         }else{
             SVGObject.polygon(overridePolygon).fill(color).stroke(color).opacity(physicalObject.opt.opacity);
         };
-        SVGObject.cx(this.scale*(xPosition - this.pointTopLeft[0]));
-        SVGObject.cy(this.scale*(yPosition - this.pointTopLeft[1]));
         let outlineObjects = SVGObject.children();
         let SVGObjectFront = SVGObject.clone();
         SVGObject.put(SVGObjectFront);
         outlineObjects.stroke({ color: this.selectionColor, width: this.selectionWidth}).fill(this.selectionColor);
         outlineObjects.opacity(0);
-        let bond = new visualizationBond(this, physicalObject, SVGObject, outlineObjects);
+        let bond = new visualizationBond(this, physicalObject, SVGObject, outlineObjects, SVGObject.cx(), SVGObject.cy());
         this.visualizationBonds.push(bond);
+        bond.cx(this.scale*(xPosition - this.pointTopLeft[0]));
+        bond.cy(this.scale*(yPosition - this.pointTopLeft[1]));
     };
      
     addVisualizationBond(bond){
@@ -467,9 +519,9 @@ class SVGRender{//ADD CULLING
             let pair = this.visualizationBonds[i].getObjectImagePair();
             let img = pair.image;
             let obj = pair.object;
-            img.cx(this.scale*(obj.getBody().position.x - this.pointTopLeft[0]));
-            img.cy(this.scale*(obj.getBody().position.y - this.pointTopLeft[1]));
-            img.transform({ rotate: obj.getBody().angle});
+            img.transform({ rotate: obj.getBody().angle}); // need radians to degree - probably not
+            this.visualizationBonds[i].cx(this.scale*(obj.getBody().position.x - this.pointTopLeft[0]));
+            this.visualizationBonds[i].cy(this.scale*(obj.getBody().position.y - this.pointTopLeft[1]));
         };
         this.updateForceVisuals();
     }

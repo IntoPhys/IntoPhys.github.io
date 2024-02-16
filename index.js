@@ -484,6 +484,19 @@ class PhysicalObject{
         Matter.Composite.remove(engine.world, this.body);
         Matter.Events.trigger(engine, "objectDeleted", {physicalObject: this})
     };//
+    
+    onSelected(){
+        let visualizer = this.visualizationBond.getVisualizer();
+        visualizer.clearInputs();
+        visualizer.addInput(
+            visualizer.getFloatInput("Коэффициент трения покоя", 0, 1, 0.01, this.body.frictionStatic, (f) => {this.body.frictionStatic = f})
+        );
+        visualizer.addInput(
+            visualizer.getFloatInput("Коэффициент трения скольжения", 0, 1, 0.01, this.body.friction, (f) => {this.body.friction = f})
+        );
+        visualizer.setTitle("Редактирование свойств объекта");
+    };
+
 };
 
 // module aliases

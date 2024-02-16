@@ -33,6 +33,7 @@ body{
     font-size: 12px;
     grid-column: 1/3;
     grid-row: 1;
+    z-index: 6;
 }
 
 .menu_button {

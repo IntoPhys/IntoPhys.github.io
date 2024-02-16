@@ -308,6 +308,31 @@ class SVGRender{//ADD CULLING
             };
         });
         this.setTitle("");
+
+        //creating a popup
+        this.popup = $('<div class = "popupcontainer"></div>').css({
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: $(document).width(),
+            height: $(document).height(),
+            "z-index": 100,
+            "background-color": "transparent",
+            "display": "flex",
+            "justify-content": "center",
+            "align-items": "center",
+            color: "white"
+        });
+
+        this.popupContents = $('<div class = "popup"></div>').css({
+            width: "300px",
+            height: "fit-content",
+            "background-color": "#333333",
+            "overflow-y": "scroll"
+        }).appendTo(this.popup);
+
+        parental.append(this.popup);
+        this.popup.hide();
         
     };
 
@@ -321,12 +346,18 @@ class SVGRender{//ADD CULLING
         }
         this.title.text(text);
     };
+    getTitle(){
+        return this.title.text();
+    }
     addInput(JQuery){
         this.contents.append(JQuery);
     };
     clearInputs(){
         this.contents.children().remove();
-    }
+    };
+    getInputs(){
+        return this.contents.children();
+    };
 
     getFloatInput(text, min, max, step, _default, callback){
         let JQwrapper = $("<div></div>").css({
@@ -473,6 +504,116 @@ class SVGRender{//ADD CULLING
         return JQwrapper;
     };
 
+    getListInput(text, elements, _default, callback){
+        let JQwrapper = $("<div></div>").css({
+            width: "100%",
+           height:" fit-content",
+           display:"flex",
+           "flex-direction":"column"
+        });
+        JQwrapper.append($("<p>" + text + "</p>").css({
+            "margin-left": "1.125%",
+            "margin-right": "1.125%",
+            "text-indent": "1.125%",
+            "font-size": "10px",
+            height: "fit-content",
+            "margin-bottom": 0
+        }));
+        
+        let listInput = $('<select data-bs-theme="dark"></select>').css({
+            "margin-left": "3.375%",
+            "margin-right": "1.125%",
+            height: "24px",
+            "font-size": "10px",
+            "line-height": "1.5",
+            "color": "var(--bs-body-color)",
+            "background-size": "16px 12px",
+            "border": "var(--bs-border-width) solid var(--bs-border-color)",
+            "border-radius": "var(--bs-border-radius)",
+            "transition": "border-color .15s ease-in-out,box-shadow .15s ease-in-out"
+        });
+
+        let keys = Object.keys(elements)
+
+        for(let i in keys){
+            listInput.append($("<option value = " + keys[i] + ">" + elements[keys[i]] + "</option>"));
+        };
+        
+        listInput.val(_default);
+            
+        listInput.on("change", (e)=>{
+            console.log(listInput.val());
+            callback(listInput.val(), e);
+        });
+         
+         JQwrapper.append(listInput);
+         return JQwrapper;
+    };
+
+    getText(text){
+        let JQwrapper = $("<div></div>").css({
+            width: "100%",
+           height:" fit-content",
+           display:"flex",
+           "flex-direction":"column"
+        });
+        JQwrapper.append($("<p>" + text + "</p>").css({
+            "margin-left": "1.125%",
+            "margin-right": "1.125%",
+            "text-indent": "1.125%",
+            "font-size": "10px",
+            height: "fit-content",
+            "margin-bottom": 0
+        }));
+        return JQwrapper;
+    };
+
+    getButton(text, callback){
+        let JQwrapper = $("<div></div>").css({
+            width: "100%",
+           height:" fit-content",
+           display:"flex",
+           "flex-direction":"column"
+        });
+        JQwrapper.append($('<button type="button" class="btn btn-dark">' + text + '</button>').css({
+            "width": "100%",
+            "font-size": "10px",
+            height: "fit-content",
+            "margin-bottom": 0
+        }).on("click", ()=>{callback()}));
+        return JQwrapper;
+    };
+
+    getSmallButton(text, callback){
+        let JQwrapper = $("<div></div>").css({
+            width: "100%",
+           height:" fit-content",
+           display:"flex",
+           "flex-direction":"column"
+        });
+        JQwrapper.append($('<button type="button" class="btn btn-dark">' + text + '</button>').css({
+            "width": "100%",
+            "height": "12px",
+            "font-size": "10px",
+            height: "fit-content",
+            "margin-bottom": 0
+        }).on("click", ()=>{callback()}));
+        return JQwrapper;
+    };
+
+    getLine(){
+        let JQwrapper = $("<div></div>").css({
+            width: "100%",
+           height:"1px",
+           "bakground-color": "#555555",
+           "margin-top":"2px",
+           "margin-bottom": "1px"
+        });
+        console.log(JQwrapper);
+        return JQwrapper;
+    };
+
+
     recolorBond(bond, color){
         bond.getVisuals().children().fill(color).stroke(color);
     };
@@ -516,6 +657,19 @@ class SVGRender{//ADD CULLING
         this.visualizationBonds.push(bond);
         this.cx(bond, this.scale*(xPosition - this.pointTopLeft[0]));
         this.cy(bond, this.scale*(yPosition - this.pointTopLeft[1]));
+    };
+
+    openPopup(){
+        this.popup.show();
+    };
+    closePopup(){
+        this.popup.hide();
+    };
+    clearPopupInputs(){
+        this.popupContents.children().remove();
+    };
+    addPopupInput(inp){
+        this.popupContents.append(inp);
     };
      
     addVisualizationBond(bond){

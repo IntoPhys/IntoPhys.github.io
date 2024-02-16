@@ -134,7 +134,6 @@ class ConstantForce extends Force{
        this.visualizer.addInput(
             this.visualizer.getFloatInput("Вертикальная компонента силы(положительное направление - вверх), H", undefined, undefined, 0.01, -this.force.y, (f) => {this.force.y = -f})
         ); 
-        this.visualizer.setTitle("Настройка постоянной силы");
     };
 }
 
@@ -175,8 +174,6 @@ class ElasticForce extends Force{//Suitable only for 2 objects
         this.stiffness = stiffness;
         this.length = Matter.Vector.magnitude(Matter.Vector.sub(pointA, pointB));
         this.objectA = objectA; this.objectB = objectB;
-        console.log(objectA.getBody().position);
-        console.log(objectB.getBody().position);
         this.objectPositionDeltaA = Matter.Vector.sub(pointA, objectA.getBody().position);
         this.objectPositionDeltaB = Matter.Vector.sub(pointB, objectB.getBody().position);
 
@@ -217,9 +214,8 @@ class ElasticForce extends Force{//Suitable only for 2 objects
     onCreation(){
         super.onCreation()
         this.visualizer.addInput(
-            this.visualizer.getFloatInput("Жёсткость пружины, H/м", 0, undefined, 0.01, this.stiffness, (f) => {this.stiffness = f})
-        );
-        this.visualizer.setTitle("Настройка силы упругости");
+            this.visualizer.getFloatInput("Жёсткость пружины, H/м", 0, undefined, 0.01, this.force.x, (f) => {this.force.x = f})
+        ); 
     };
 };
 

@@ -313,7 +313,7 @@ class SpringTool extends Tool{
         return false;
     };
 
-    pointPossible(point){
+    pointPossible(point, addPoint = false){//the bug is here in assigning object b and a
         let objs = this.visualizer.getObjects();
         if(objs.length === 0){
             return true;
@@ -325,10 +325,12 @@ class SpringTool extends Tool{
                     continue;
                 };
                 if(Matter.Vertices.contains(objParts[j].vertices, point)){
-                    if(!this.objectA){
-                        this.objectA = objs[i];
-                    }else if(!this.objectB){
-                        this.objectB = objs[i];
+                    if(addPoint){
+                        if(this.objectA === undefined){
+                            this.objectA = objs[i];
+                        }else if(!this.objectB){
+                            this.objectB = objs[i];
+                        };
                     };
                     return true;
                 };
@@ -364,23 +366,22 @@ class SpringTool extends Tool{
         super.activate();
     };
     addPoint(x, y){
-        if(this.pointPossible(this.visualizer.viewPointToWorld([x, y]))){
+        if(this.pointPossible(this.visualizer.viewPointToWorld([x, y]), true)){
             if(this.firstPointCreated){
                 //end drawing
+                let points = [];//kinda VERY VERY VERY VERY VERY BAD
                 for(let i = 0; i < this.pointsSVG.length; i++){
+                    points.push(this.visualizer.viewPointToWorld([this.pointsSVG[i].cx(), this.pointsSVG[i].cy()]));
                     this.pointsSVG[i].remove();
                 };
+                points.push(this.visualizer.viewPointToWorld([x, y]));
                 this.pointsSVG = [];
                 this.firstPointCreated = false;
 
                //Matter.Composites.chain(ropeA, 0.5, 0, -0.5, 0, { stiffness: 0.8, length: 2, render: { type: 'line' } });
-                Matter.Composite.add(engine.world, Matter.Constraint.create({
-                    bodyA: this.objectA.body,
-                    pointA: { x: 0, y: 0 },
-                    bodyB: this.objectB.body,
-                    pointB: { x: -25, y: 0 },
-                    stiffness: 0.5
-                }));
+               let force = new ElasticForce(this.objectA, points[0], this.objectB, points[1], 1000);
+               this.objectA.attachForce(force);
+               this.objectB.attachForce(force);
                 return;
             };
             this.pointsSVG.push(this.visualizer.getSVGCanvas()

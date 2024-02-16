@@ -898,7 +898,8 @@ nav.activate();
 //cr_polygon.activate();
 
 //examples
-let exampleButtons = $(".menu_button");
+let exampleButtons = $(".exmp");
+console.log(exampleButtons);
 
 for(let i = 0; i < exampleButtons.length; i++){
     let btn = exampleButtons.eq(i);
@@ -923,6 +924,5 @@ window.simulationLoop = setInterval(() => {
     //let now = Date.now();
     let dt = 0.005;//now - lastUpdate;
     //lastUpdate = now;
-    delay(1000);
     Matter.Engine.update(engine, dt);
 }, 0);

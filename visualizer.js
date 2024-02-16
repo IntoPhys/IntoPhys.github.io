@@ -739,7 +739,7 @@ class SVGRender{//ADD CULLING
         this.update();
     };
     toSimulationCoordinates(coords){
-        return coords;//[(coords[0]-this.pointTopLeft[0])*this.scale, (coords[1]-this.pointTopLeft[1])*this.scale];
+        return [coords[0]/this.scale+this.pointTopLeft[0], coords[1]/this.scale+this.pointTopLeft[1]];
     };
     getVisualizationBonds(){
         return this.visualizationBonds;

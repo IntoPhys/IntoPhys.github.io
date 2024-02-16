@@ -710,7 +710,7 @@ class PolygonCreationTool extends Tool{
             let newBounds = obj.getBody().bounds;
             let oldBounds = Matter.Bounds.create(polygonVertices);
             obj.addToEngine(this.visualizer.engine, undefined);
-            //Matter.Body.setPosition(obj.getBody(), Matter.Vector.create(obj.getBody().position.x + oldBounds.min.x - newBounds.min.x, obj.getBody().position.y + oldBounds.min.y - newBounds.min.y));
+            Matter.Body.setPosition(obj.getBody(), Matter.Vector.create(obj.getBody().position.x + oldBounds.min.x - newBounds.min.x, obj.getBody().position.y + oldBounds.min.y - newBounds.min.y));
             //console.log(obj.getBody().parts);
 
             //Test

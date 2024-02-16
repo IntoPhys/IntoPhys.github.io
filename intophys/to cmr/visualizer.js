@@ -18,7 +18,7 @@ class visualizationBond{
     getVisuals(){
         return this.visuals;
     };
-
+    
     getObjectImagePair(){
         return {
             object: this.object,
@@ -59,8 +59,7 @@ class SVGRender{//ADD CULLING
     constructor(obj){
 
         this.forceBonds = [];
-        this.forceVisualsScale = 2;
-        this.springBonds = [];
+        this.forceVisualsScale = 0.0001;
 
         this.tools = [];
         this.selected = [];//VisualizationBonds, containing objects that tools act on
@@ -75,7 +74,7 @@ class SVGRender{//ADD CULLING
         this.objectToFollowDeltas = [0, 0];
         this.pointTopLeft = [0, 0];//coordinates in xy that top left angle of the screen corresponds to
         this.scale = 1//is used to transfer coordinates from simulation to window
-
+        
         this.visualizationBonds = [];
         this.width = obj.options.width;
         this.height = obj.options.height;
@@ -111,7 +110,7 @@ class SVGRender{//ADD CULLING
             };
             this.contextmenu.hide();
         });
-
+        
         let unselectButton = $('<label class="menu_button context_menu_button">Снять выделение</label>');
         unselectButton.appendTo(this.contextmenu);
         unselectButton.on("click", ()=>{
@@ -237,57 +236,57 @@ class SVGRender{//ADD CULLING
         let parental = $(obj.element);
         let container = $('<div class="properties"</div>') ;
         container.css({
-            position:"absolute",
-            display: "flex",
-            "flex-direction":"column",
-            width:"300px",
-            height: parental.height(),
-            top: parental.offset().top,
-            left: parental.offset().left,
-        });
+          position:"absolute", 
+          display: "flex",
+          "flex-direction":"column",
+          width:"300px",
+          height: parental.height(),
+          top: parental.offset().top,
+          left: parental.offset().left,
+         });
         $("<div></div>").css({
-            "flex-basis":0,
-            "flex-grow":1,
-            opacity: 0,
+          "flex-basis":0,
+          "flex-grow":1,
+          opacity: 0,
         }).appendTo(container);
         this.topPart = $("<div></div>").attr({
             class: "property_menu"
         }).css({
-            height: "12px",
-            display:"flex",
-            "flex-direction": "row",
-            "z-index": 5
+          height: "12px",
+          display:"flex",
+          "flex-direction": "row",
+          "z-index": 5
         }).appendTo(container);
         let btn = $("<img>").attr({
-            src: "./icons/openproperties.png"
+          src: "./icons/openproperties.png"
         }).css({
-            height: "12px",
-            width: "12px",
-            draggable: false
+          height: "12px",
+          width: "12px",
+          draggable: false
         }).appendTo(this.topPart);
         this.title = $("<label>Рандомное название </label>").css({
-            "font-size":"10px",
-            "align-self": "center",
-            "margin-left": "3px"
+          "font-size":"10px",
+          "align-self": "center",
+          "margin-left": "3px"
         }).appendTo(this.topPart);
         this.contents = $("<div></div>").attr({
             class: "property_container"
         }).css({
-            height: "auto",
-            display: "flex",
-            "flex-direction":"column",
-            "z-index": 5
+          height: "auto",
+          display: "flex",
+          "flex-direction":"column",
+          "z-index": 5
         }).appendTo(container);
         //text, min, max, step, _default, callback
         this.contents.hide();
         btn.on("click",()=>{
-            if(this.contents.is(":visible")){
-                btn.attr({src: "./icons/openproperties.png"})
-                this.contents.hide();
-            }else{
-                btn.attr({src: "./icons/closeproperties.png"});
-                this.contents.show();
-            };
+          if(this.contents.is(":visible")){
+            btn.attr({src: "./icons/openproperties.png"})
+            this.contents.hide();
+          }else{
+            btn.attr({src: "./icons/closeproperties.png"});
+            this.contents.show();
+          };
         });
         container.appendTo(parental);
         //property menu end
@@ -309,31 +308,7 @@ class SVGRender{//ADD CULLING
             };
         });
         this.setTitle("");
-
-        //creating a popup
-        this.popup = $('<div class = "popupcontainer"></div>').css({
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: $(document).width(),
-            height: $(document).height(),
-            "z-index": 100,
-            "background-color": "transparent",
-            "display": "flex",
-            "justify-content": "center",
-            "align-items": "center",
-            color: "white"
-        });
-
-        this.popupContents = $('<div class = "popup"></div>').css({
-            width: "300px",
-            height: "fit-content",
-            "background-color": "#333333",
-            "overflow-y": "scroll"
-        }).appendTo(this.popup);
-
-        parental.append(this.popup);
-        this.popup.hide();
+        
     };
 
     setTitle(text){
@@ -346,39 +321,33 @@ class SVGRender{//ADD CULLING
         }
         this.title.text(text);
     };
-    getTitle(){
-        return this.title.text();
-    }
     addInput(JQuery){
         this.contents.append(JQuery);
     };
     clearInputs(){
         this.contents.children().remove();
     }
-    getInputs(){
-        return this.contents.children();
-    };
 
     getFloatInput(text, min, max, step, _default, callback){
         let JQwrapper = $("<div></div>").css({
-            width: "100%",
-            height:" fit-content",
-            display:"flex",
-            "flex-direction":"column"
+           width: "100%",
+          height:" fit-content",
+          display:"flex",
+          "flex-direction":"column"
         });
         JQwrapper.append($("<p>" + text + "</p>").css({
-            "margin-left": "1.125%",
-            "margin-right": "1.125%",
-            "text-indent": "1.125%",
-            "font-size": "10px",
-            height: "fit-content",
-            "margin-bottom": 0
+          "margin-left": "1.125%",
+          "margin-right": "1.125%",
+          "text-indent": "1.125%",
+          "font-size": "10px",
+          height: "fit-content",
+          "margin-bottom": 0
         }));
-
+        
         let floatInput = $('<input type="number" class="input-group-text" data-bs-theme="dark"/>').attr({
-            min: min,
-            max: max,
-            step: step,
+                min: min,
+                max: max,
+                step: step,
         }).css({
             "margin-left": "3.375%",
             "margin-right": "1.125%",
@@ -386,7 +355,7 @@ class SVGRender{//ADD CULLING
             "font-size": "10px"
         });
         floatInput.val(_default);
-
+            
         floatInput.on("change keyup", (e)=>{
             if(e.type === "keyup" && e.originalEvent.key === "Backspace"){
                 return;
@@ -403,27 +372,27 @@ class SVGRender{//ADD CULLING
             };
             callback(parseFloat(floatInput.val()), e);
         });
-
+        
         JQwrapper.append(floatInput);
         return JQwrapper;
     };
 
     getTextInput(text, _default, callback){
         let JQwrapper = $("<div></div>").css({
-            width: "100%",
-            height:" fit-content",
-            display:"flex",
-            "flex-direction":"column"
+           width: "100%",
+          height:" fit-content",
+          display:"flex",
+          "flex-direction":"column"
         });
         JQwrapper.append($("<p>" + text + "</p>").css({
-            "margin-left": "1.125%",
-            "margin-right": "1.125%",
-            "text-indent": "1.125%",
-            "font-size": "10px",
-            height: "fit-content",
-            "margin-bottom": 0
+          "margin-left": "1.125%",
+          "margin-right": "1.125%",
+          "text-indent": "1.125%",
+          "font-size": "10px",
+          height: "fit-content",
+          "margin-bottom": 0
         }));
-
+        
         let textInput = $('<input type="text" class="input-group-text" data-bs-theme="dark"/>').css({
             "margin-left": "3.375%",
             "margin-right": "1.125%",
@@ -431,21 +400,21 @@ class SVGRender{//ADD CULLING
             "font-size": "10px"
         });
         textInput.val(_default);
-
+            
         textInput.on("change keyup", (e)=>{
             callback(textInput.val(), e);
         });
-
+        
         JQwrapper.append(textInput);
         return JQwrapper;
     };
 
     getMultiTextInput(text, _default, callback){
         let JQwrapper = $("<div></div>").css({
-            width: "100%",
-            height:" fit-content",
-            display:"flex",
-            "flex-direction":"column"
+           width: "100%",
+          height:" fit-content",
+          display:"flex",
+          "flex-direction":"column"
         });
         JQwrapper.append($("<p>" + text + "</p>").css({
             "margin-left": "1.125%",
@@ -455,7 +424,7 @@ class SVGRender{//ADD CULLING
             height: "fit-content",
             "margin-bottom": 0
         }));
-
+        
         let multiTextInput = $('<textarea type="text" class="input-group-text" data-bs-theme="dark"/>').css({
             "margin-left": "3.375%",
             "margin-right": "1.125%",
@@ -463,128 +432,20 @@ class SVGRender{//ADD CULLING
             "font-size": "10px"
         });
         multiTextInput.val(_default);
-
+            
         multiTextInput.on("change keyup", (e)=>{
             callback(multiTextInput.val(), e);
         });
-
+        
         JQwrapper.append(multiTextInput);
-        return JQwrapper;
-    };
-    getListInput(text, elements, _default, callback){
-        let JQwrapper = $("<div></div>").css({
-            width: "100%",
-            height:" fit-content",
-            display:"flex",
-            "flex-direction":"column"
-        });
-        JQwrapper.append($("<p>" + text + "</p>").css({
-            "margin-left": "1.125%",
-            "margin-right": "1.125%",
-            "text-indent": "1.125%",
-            "font-size": "10px",
-            height: "fit-content",
-            "margin-bottom": 0
-        }));
-
-        let listInput = $('<select data-bs-theme="dark"></select>').css({
-            "margin-left": "3.375%",
-            "margin-right": "1.125%",
-            height: "24px",
-            "font-size": "10px",
-            "line-height": "1.5",
-            "color": "var(--bs-body-color)",
-            "background-size": "16px 12px",
-            "border": "var(--bs-border-width) solid var(--bs-border-color)",
-            "border-radius": "var(--bs-border-radius)",
-            "transition": "border-color .15s ease-in-out,box-shadow .15s ease-in-out"
-        });
-
-        let keys = Object.keys(elements)
-
-        for(let i in keys){
-            listInput.append($("<option value = " + keys[i] + ">" + elements[keys[i]] + "</option>"));
-        };
-
-        listInput.val(_default);
-
-        listInput.on("change", (e)=>{
-            console.log(listInput.val());
-            callback(listInput.val(), e);
-        });
-
-        JQwrapper.append(listInput);
-        return JQwrapper;
-    };
-
-    getText(text){
-        let JQwrapper = $("<div></div>").css({
-            width: "100%",
-            height:" fit-content",
-            display:"flex",
-            "flex-direction":"column"
-        });
-        JQwrapper.append($("<p>" + text + "</p>").css({
-            "margin-left": "1.125%",
-            "margin-right": "1.125%",
-            "text-indent": "1.125%",
-            "font-size": "10px",
-            height: "fit-content",
-            "margin-bottom": 0
-        }));
-        return JQwrapper;
-    };
-
-    getButton(text, callback){
-        let JQwrapper = $("<div></div>").css({
-            width: "100%",
-            height:" fit-content",
-            display:"flex",
-            "flex-direction":"column"
-        });
-        JQwrapper.append($('<button type="button" class="btn btn-dark">' + text + '</button>').css({
-            "width": "100%",
-            "font-size": "10px",
-            height: "fit-content",
-            "margin-bottom": 0
-        }).on("click", ()=>{callback()}));
-        return JQwrapper;
-    };
-
-    getSmallButton(text, callback){
-        let JQwrapper = $("<div></div>").css({
-            width: "100%",
-            height:" fit-content",
-            display:"flex",
-            "flex-direction":"column"
-        });
-        JQwrapper.append($('<button type="button" class="btn btn-dark">' + text + '</button>').css({
-            "width": "100%",
-            "height": "12px",
-            "font-size": "10px",
-            height: "fit-content",
-            "margin-bottom": 0
-        }).on("click", ()=>{callback()}));
-        return JQwrapper;
-    };
-
-    getLine(){
-        let JQwrapper = $("<div></div>").css({
-            width: "100%",
-            height:"1px",
-            "bakground-color": "#555555",
-            "margin-top":"2px",
-            "margin-bottom": "1px"
-        });
-        console.log(JQwrapper);
         return JQwrapper;
     };
 
     getColorInput(text, _default, callback){
         let JQwrapper = $("<div></div>").css({
-            width: "100%",
-            height:"fit-content",
-            display:"block",
+           width: "100%",
+          height:"fit-content",
+          display:"block",
         });
 
         JQwrapper.append($("<label>" + text + "</label>").css({
@@ -595,7 +456,7 @@ class SVGRender{//ADD CULLING
             height: "fit-content",
             "margin-bottom": 0
         }));
-
+        
         let colorInput = $('<input type="color" class="input-group-text" data-bs-theme="dark"/></textarea>').css({
             "margin-left": "3.375%",
             "margin-right": "1.125%",
@@ -603,11 +464,11 @@ class SVGRender{//ADD CULLING
             "font-size": "10px"
         });
         colorInput.val(_default);
-
+            
         colorInput.on("change", (e)=>{
             callback(colorInput.val(), e);
         });
-
+        
         JQwrapper.append(colorInput);
         return JQwrapper;
     };
@@ -656,19 +517,7 @@ class SVGRender{//ADD CULLING
         this.cx(bond, this.scale*(xPosition - this.pointTopLeft[0]));
         this.cy(bond, this.scale*(yPosition - this.pointTopLeft[1]));
     };
-
-    openPopup(){
-        this.popup.show();
-    };
-    closePopup(){
-        this.popup.hide();
-    };
-    clearPopupInputs(){
-        this.popupContents.children().remove();
-    };
-    addPopupInput(inp){
-        this.popupContents.append(inp);
-    };
+     
     addVisualizationBond(bond){
         this.visualizationBonds.push(bond);
     };
@@ -679,9 +528,15 @@ class SVGRender{//ADD CULLING
                 this.objectToFollowDeltas[1] + this.objectToFollow.getBody().position.y
             ];
         };
-        this.updateObjectVisuals();
+        for (let i = 0; i < this.visualizationBonds.length; i++){
+            let pair = this.visualizationBonds[i].getObjectImagePair();
+            let img = pair.image;
+            let obj = pair.object;
+            this.cx(this.visualizationBonds[i], this.scale*(obj.getBody().position.x - this.pointTopLeft[0]));
+            this.cy(this.visualizationBonds[i], this.scale*(obj.getBody().position.y - this.pointTopLeft[1]));
+            img.transform({ rotate: obj.getBody().angle/Math.PI*180}); // need radians to degrees - probably not - probably yes
+        };
         this.updateForceVisuals();
-        this.updateSpringsVisuals();
     }
     scaleView(factor, offsetX, offsetY){
         for(let i = 0; i < this.scaleViewCallbacks.length; i ++){
@@ -715,7 +570,7 @@ class SVGRender{//ADD CULLING
     viewPointToWorld(point) {
         return Matter.Vector.create(point[0]/this.scale + this.pointTopLeft[0], point[1]/this.scale + this.pointTopLeft[1]);
     };
-
+    
     followObject(object){
         if(!object){
             this.objectToFollow = object;
@@ -739,7 +594,7 @@ class SVGRender{//ADD CULLING
         this.update();
     };
     toSimulationCoordinates(coords){
-        return coords;//[(coords[0]-this.pointTopLeft[0])*this.scale, (coords[1]-this.pointTopLeft[1])*this.scale];
+        return [coords[0]/this.scale + this.pointTopLeft[0], coords[1]/this.scale + this.pointTopLeft[1]];
     };
     getVisualizationBonds(){
         return this.visualizationBonds;
@@ -797,12 +652,11 @@ class SVGRender{//ADD CULLING
     addForceVisual(objectForceBond){//Fix arrows
         this.forceBonds.push(objectForceBond);
         let force = objectForceBond.getForceApplied();
-        let mod = Matter.Vector.magnitude(force[1]);
         let image = this.SVGCanvas.line(
             (force[0].x - this.pointTopLeft[0])*this.scale,
             (force[0].y - this.pointTopLeft[1])*this.scale,
-            (force[0].x + this.forceVisualsScale*Math.log(mod+1)*(force[1].x/mod) - this.pointTopLeft[0])*this.scale,
-            (force[0].y + this.forceVisualsScale*Math.log(mod+1)*(force[1].y/mod) - this.pointTopLeft[1])*this.scale
+            (force[0].x + this.forceVisualsScale*force[1].x - this.pointTopLeft[0])*this.scale,
+            (force[0].y + this.forceVisualsScale*force[1].y - this.pointTopLeft[1])*this.scale
         ).stroke({ width: objectForceBond.getVisuals().strokeWidth, color:  objectForceBond.getVisuals().strokeColor}).marker('end', 10, 10, function(add) {
             add.path('M 0 0 L 10 5 L 0 10 z').fill(objectForceBond.getVisuals().strokeColor).stroke({ width: 1});
         });
@@ -818,70 +672,12 @@ class SVGRender{//ADD CULLING
     updateForceVisuals(){
         for(let i in this.forceBonds){
             let force = this.forceBonds[i].getForceApplied();
-            let mod = Matter.Vector.magnitude(force[1]);
             this.forceBonds[i].getSVGImage().attr({
                 x1:(force[0].x - this.pointTopLeft[0])*this.scale,
                 y1:(force[0].y - this.pointTopLeft[1])*this.scale,
-                x2:(force[0].x + this.forceVisualsScale*Math.log(mod+1)*(force[1].x/mod) - this.pointTopLeft[0])*this.scale,
-                y2:(force[0].y + this.forceVisualsScale*Math.log(mod+1)*(force[1].y/mod) - this.pointTopLeft[1])*this.scale
+                x2:(force[0].x + this.forceVisualsScale*force[1].x - this.pointTopLeft[0])*this.scale,
+                y2:(force[0].y + this.forceVisualsScale*force[1].y - this.pointTopLeft[1])*this.scale
             });
         };
     };
-
-    addSpringsVisuals(springBond) {
-        this.springBonds.push(springBond);
-        let image = this.SVGCanvas.line(
-            (springBond.pointA.x - this.pointTopLeft[0])*this.scale,
-            (springBond.pointA.y - this.pointTopLeft[1])*this.scale,
-            (springBond.pointB.x - this.pointTopLeft[0])*this.scale,
-            (springBond.pointB.y - this.pointTopLeft[1])*this.scale
-        ).stroke({ width: 2/*springBond.stiffness*/, color:  '#FFFFFF'});
-        springBond.setSVGImage(image);
-    }
-    updateSpringsVisuals() {
-        for(let i in this.springBonds){
-            this.springBonds[i].getSVGImage().attr({
-                x1:(this.springBonds[i].pointA.x - this.pointTopLeft[0])*this.scale,
-                y1:(this.springBonds[i].pointA.y - this.pointTopLeft[1])*this.scale,
-                x2:(this.springBonds[i].pointB.x - this.pointTopLeft[0])*this.scale,
-                y2:(this.springBonds[i].pointB.y - this.pointTopLeft[1])*this.scale
-            });
-        };
-    }
-
-    updateObjectVisuals() {
-        for (let i = 0; i < this.visualizationBonds.length; i++){
-            let pair = this.visualizationBonds[i].getObjectImagePair();
-            let img = pair.image;
-            let obj = pair.object;
-            this.cx(this.visualizationBonds[i], this.scale*(obj.getBody().position.x - this.pointTopLeft[0]));
-            this.cy(this.visualizationBonds[i], this.scale*(obj.getBody().position.y - this.pointTopLeft[1]));
-            img.transform({ rotate: obj.getBody().angle/Math.PI*180}); // need radians to degrees - probably not - probably yes
-        };
-    }
-
-    clear() {
-        for (let i in this.forceBonds) {
-            this.forceBonds[i].getSVGImage().remove();
-        }
-        this.forceBonds = [];
-        for (let i in this.springBonds) {
-            this.springBonds[i].getSVGImage().remove();
-        }
-        this.springBonds = [];
-
-        this.selected = [];//VisualizationBonds, containing objects that tools act on
-
-        this.moveViewCallbacks = [];
-        this.scaleViewCallbacks = [];
-        this.objectToFollow = undefined;//physical object that viewport follows
-        this.objectToFollowDeltas = [0, 0];
-        this.pointTopLeft = [0, 0];
-        for (let i = 0; i < this.visualizationBonds.length; i++){
-            this.visualizationBonds[i].delete();
-        };
-        this.scale = 1;
-        this.visualizationBonds = [];
-        this.update();
-    }
 }

@@ -1,18 +1,10 @@
 window.G = 6.67 * Math.pow(10,-11)* Math.pow(10, 11);
 window.g_of_planets = {
-    "TrueEarthequator": 9.8144,
-    "EffectiveEarthequator": 9.7805,
-    "Earthpole": 9.8322,
-    "Moon": 1.62,
-    "Venus": 8.88,
-    "Jupiter": 24.79,
-    "Uranus": 8.86,
-    "Sun": 273.1,
-    "Mercury": 3.7,
-    "Mars": 3.86,
-    "Saturn": 10.44,
-    "Neptune": 11.09,
-    "Pluto": 0.617
+    "True Earth equator": 9.8144,
+    "Effective Earth equator": 9.7805,
+    "True Earth pole": 9.8322,
+    "Effective Earth pole": 9.8322,
+    "one": 1
 }
 const wheelScaleFactor = 1.1;
 
@@ -21,42 +13,6 @@ decomp.quickDecomp = decomp.decomp;
 Matter.Common.setDecomp(decomp);
 
 window.contextMenu = document.getElementById("contextmenu");
-
-
-class springBond {
-    constructor(objectA, pointA, objectB, pointB, stiffness, length = undefined) {
-        this.objectA = objectA;
-        this.objectB = objectB;
-        this.pointA = pointA;
-        this.pointB = pointB;
-
-        if (length) {
-            this.length = length;
-        } else {
-            this.length = Matter.Vector.magnitude(Matter.Vector.sub(pointA, pointB));
-        }
-
-        this.force = new ElasticForce(this.objectA, this.pointA, this.objectB, this.pointB, stiffness, this);
-        this.objectA.attachForce(this.force);
-        this.objectB.attachForce(this.force);
-        this.objectPositionDeltaA = Matter.Vector.rotate(Matter.Vector.sub(pointA, Matter.Vector.clone(objectA.getBody().position)), -objectA.getBody().angle);
-        this.objectPositionDeltaB = Matter.Vector.rotate(Matter.Vector.sub(pointB, Matter.Vector.clone(objectB.getBody().position)), -objectB.getBody().angle);
-
-        this.SVGImage = undefined;
-    };
-
-    update() {
-        this.pointA = Matter.Vector.add(this.objectA.getBody().position, Matter.Vector.rotate(this.objectPositionDeltaA, this.objectA.getBody().angle));
-        this.pointB = Matter.Vector.add(this.objectB.getBody().position, Matter.Vector.rotate(this.objectPositionDeltaB, this.objectB.getBody().angle));
-    }
-
-    setSVGImage(image){
-        this.SVGImage = image;
-    };
-    getSVGImage(){
-        return this.SVGImage;
-    };
-}
 
 class ForceObjectBond{//Forces need to be added after adding to engine
     constructor(object, force, visualizer, visualize = true){
@@ -106,7 +62,7 @@ class ForceObjectBond{//Forces need to be added after adding to engine
         return this.SVGImage;
     };
     getVisuals(){
-        return {strokeWidth: 1, strokeColor: "#00ff00"};
+        return {strokeWidth: 1, strokeColor: "green"}
     };
     hide(){
         this.SVGImage.hide();
@@ -132,8 +88,6 @@ class Force{
 
         this.onCreation();
 
-        this.force = Matter.Vector.create(0, 0);
-
         return bond;
     }
     detachBond(bond){
@@ -150,7 +104,7 @@ class Force{
         };
     };
     updateForce(bond){
-        bond.setForceApplied(bond.getObject().getBody().position, this.force);
+        bond.setForceApplied(bond.getObject().getBody().position, Matter.Vector.create(0, 0));
     };
     unite(other){
         if(0){
@@ -177,10 +131,9 @@ class ConstantForce extends Force{
         this.visualizer.addInput(
             this.visualizer.getFloatInput("Горизонтальная компонента силы(положительное направление - вправо), H", undefined, undefined, 0.01, this.force.x, (f) => {this.force.x = f})
         );
-        this.visualizer.addInput(
+       this.visualizer.addInput(
             this.visualizer.getFloatInput("Вертикальная компонента силы(положительное направление - вверх), H", undefined, undefined, 0.01, -this.force.y, (f) => {this.force.y = -f})
-        );
-        this.visualizer.setTitle("Настройка постоянной силы");
+        ); 
     };
 }
 
@@ -191,41 +144,6 @@ class CelestialGravity extends Force{
     };
     updateForce(bond){
         bond.setForceApplied(bond.getObject().getBody().position, Matter.Vector.mult(this.acceleration, bond.getObject().getBody().mass));
-    };
-
-    onCreation(){
-        super.onCreation();
-        let bottomElement = undefined;
-        let element = this.visualizer.getListInput("Ускорение свободного падения", {
-            "user": "Своё значение",
-            "TrueEarthequator": "Земное на экваторе(без центробежной силы)",
-            "EffectiveEarthequator": "Земное на экваторе(с центробежной силой)",
-            "Earthpole": "Земное на полюсах",
-            "Moon": "Луна",
-            "Sun": "Солнце",
-            "Mercury": "Меркурий",
-            "Venus": "Венера",
-            "Mars": "Марс",
-            "Jupiter": "Юпитер",
-            "Saturn": "Сатурн",
-            "Uranus": "Уран",
-            "Neptune": "Нептун",
-            "Pluto": "Плутон"
-        }, "user", (v) => {
-            console.log(v);
-            bottomElement.remove();
-            if (v !== "user"){
-                bottomElement = this.visualizer.getText("Ускорениие свободного падения - " + new String(window.g_of_planets[v]) + " м/с^2");
-                this.acceleration.y = window.g_of_planets[v];
-            }else{
-                bottomElement = this.visualizer.getFloatInput("Ускорение свободного падения, м/с^2", 0, undefined, 0.01, this.acceleration.y, (f) => {this.acceleration.y = f})
-            };
-            bottomElement.insertAfter(element);
-        })
-        this.visualizer.addInput(element);
-        bottomElement = this.visualizer.getFloatInput("Ускорение свободного падения, м/с^2", 0, undefined, 0.01, this.acceleration.y, (f) => {this.acceleration.y = f});
-        this.visualizer.addInput(bottomElement);
-        this.visualizer.setTitle("Настройка силы тяжести");
     };
 }
 
@@ -238,7 +156,7 @@ class Gravity extends Force{
         for (let i in this.bonds){
             if (bond.getObject() != this.bonds[i].getObject()){
                 let addForce = Matter.Vector.mult(
-                    Matter.Vector.sub(this.bonds[i].getObject().getBody().position,
+                        Matter.Vector.sub(this.bonds[i].getObject().getBody().position, 
                         bond.getObject().getBody().position),
                     G*bond.getObject().getBody().mass*this.bonds[i].getObject().getBody().mass/
                     (Math.pow(Matter.Vector.magnitude(Matter.Vector.sub(this.bonds[i].getObject().getBody().position, bond.getObject().getBody().position)), 3))
@@ -248,68 +166,56 @@ class Gravity extends Force{
         };
         bond.setForceApplied(bond.getObject().getBody().position, force);
     };
-    unite(){
-        return true;
-    };
-    onCreation(){
-        super.onCreation();
-        this.Ma = 6.67;
-        this.p = -11;
-        this.visualizer.addInput(
-            this.visualizer.getFloatInput("Мантисса гравитационной постоянной(Н*м^2/(кг^2))", 0, 10, 0.01, this.Ma, (f) => {this.Ma=f;window.G = this.Ma * Math.pow(10,this.p)})
-        );
-        this.visualizer.addInput(
-            this.visualizer.getFloatInput("Порядок величины гравитационной постоянной", undefined, undefined, 1, this.p, (f) => {this.p=f;window.G = this.Ma * Math.pow(10,this.p)})
-        );
-        this.visualizer.setTitle("Настройка силы гравитации");
-    };
 };
 
 class ElasticForce extends Force{//Suitable only for 2 objects
-    constructor(objectA, pointA, objectB, pointB, stiffness, spring, visualize = true){
+    constructor(objectA, pointA, objectB, pointB, stiffness, visualize = true){
         super();
-        this.spring = spring;
         this.stiffness = stiffness;
+        this.length = Matter.Vector.magnitude(Matter.Vector.sub(pointA, pointB));
         this.objectA = objectA; this.objectB = objectB;
-        console.log(objectA.getBody().position);
-        console.log(objectB.getBody().position);
+        this.objectPositionDeltaA = Matter.Vector.sub(pointA, objectA.getBody().position);
+        this.objectPositionDeltaB = Matter.Vector.sub(pointB, objectB.getBody().position);
 
         this.drawn = false;
         this.visualize = visualize;
     };
     updateForce(bond){
-        this.spring.update();
-        let force = this.spring.length - Matter.Vector.magnitude(Matter.Vector.sub(this.spring.pointA, this.spring.pointB));
+        let force = this.length - Matter.Vector.magnitude(Matter.Vector.sub(
+            Matter.Vector.add(this.objectA.getBody().position, this.objectPositionDeltaA),
+            Matter.Vector.add(this.objectB.getBody().position, this.objectPositionDeltaB)
+        ));
         if(force === 0){
             if(bond.getObject() === this.objectA){
-                var point = this.spring.pointA;
+                var delta = this.objectPositionDeltaA;
             }else{
                 force = Matter.Vector.neg(force);
-                var point = this.spring.pointB;
+                var delta = this.objectPositionDeltaB;
             };
-            bond.setForceApplied(point, Matter.Vector.create(0, 0));
+            bond.setForceApplied(Matter.Vector.add(bond.getObject().getBody().position, delta), Matter.Vector.create(0, 0));
             return;
         };
-        force = Matter.Vector.mult(Matter.Vector.sub(this.spring.pointA, this.spring.pointB),
-            this.stiffness*force/(this.spring.length - force));
+        force = Matter.Vector.mult(Matter.Vector.sub(
+            Matter.Vector.add(this.objectB.getBody().position, this.objectPositionDeltaB),
+            Matter.Vector.add(this.objectA.getBody().position, this.objectPositionDeltaA)
+        ), this.stiffness*force/(this.length - force));
         if(bond.getObject() === this.objectA){
-            var point = this.spring.pointA;
-        }else{
             force = Matter.Vector.neg(force);
-            var point = this.spring.pointB;
+            var delta = this.objectPositionDeltaA;
+        }else{
+            var delta = this.objectPositionDeltaB;
         };
-        bond.setForceApplied(point, force);
+        bond.setForceApplied(Matter.Vector.add(bond.getObject().getBody().position, delta), force);
+
         if(this.visualize&!this.drawn){
             //draw object TODO
-
         };
     };
     onCreation(){
         super.onCreation()
         this.visualizer.addInput(
-            this.visualizer.getFloatInput("Жёсткость пружины, H/м", 0, undefined, 0.01, this.stiffness, (f) => {this.stiffness = f})
-        );
-        this.visualizer.setTitle("Настройка силы упругости");
+            this.visualizer.getFloatInput("Жёсткость пружины, H/м", 0, undefined, 0.01, this.force.x, (f) => {this.force.x = f})
+        ); 
     };
 };
 
@@ -378,8 +284,6 @@ class PhantomObject{
     };
 };
 
-let physicalObjects = [];
-
 //physical object
 class PhysicalObject{
     constructor(x, y, data, extraOptions = {}, cellSize = [10, 10], divide = true){
@@ -393,7 +297,6 @@ class PhysicalObject{
         this.visualizationBond = undefined;
 
         this.bonds = [];//Why array
-        this.forces = [];
 
         this.cellSize = cellSize;
         this.cells = undefined;
@@ -423,7 +326,7 @@ class PhysicalObject{
         if(data.type === "vertices"){
             this.body = Matter.Bodies.fromVertices(x, y, data.vertices, this.opt)
         };
-
+        
         if(data.angle){
             Matter.Body.setAngle(this.body, data.angle)
         };
@@ -435,9 +338,8 @@ class PhysicalObject{
             this.recalculateCM();
             this.integrateInertia();
         };
-        physicalObjects.push(this);
     };
-
+    
     divide(){
         let BB = Matter.Bounds.create(this.body.parts[0].vertices);
         let parts = this.body.parts;
@@ -447,17 +349,17 @@ class PhysicalObject{
                 if(parts.length === 1){
                     //convex
                     if(Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x, y))&
-                        Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x + this.cellSize[0], y))&
-                        Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x, y + this.cellSize[1]))&
-                        Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x + this.cellSize[0], y + this.cellSize[1]))){
+                    Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x + this.cellSize[0], y))&
+                    Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x, y + this.cellSize[1]))&
+                    Matter.Vertices.contains(parts[0].vertices, Matter.Vector.create(x + this.cellSize[0], y + this.cellSize[1]))){
                         this.cells.push([[x, y], [x + this.cellSize[0], y + this.cellSize[1]], this.densityFunction ? this.cellSize[0]*this.cellSize[1]*this.densityFunction(2*(x + this.cellSize[0]/2 - (BB.max.x + BB.min.x)/2)/(BB.max.x - BB.min.x), 2*(y + this.cellSize[1]/2 - (BB.max.y + BB.min.y)/2)/(BB.max.y - BB.min.y)): undefined]);
                     };
                 }else{
                     for(let i = 1; i < parts.length; i ++){//Not optimal
                         if(Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x, y))&
-                            Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x + this.cellSize[0], y))&
-                            Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x, y + this.cellSize[1]))&
-                            Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x + this.cellSize[0], y + this.cellSize[1]))){
+                        Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x + this.cellSize[0], y))&
+                        Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x, y + this.cellSize[1]))&
+                        Matter.Vertices.contains(parts[i].vertices, Matter.Vector.create(x + this.cellSize[0], y + this.cellSize[1]))){
                             this.cells.push([[x, y], [x + this.cellSize[0], y + this.cellSize[1]], this.densityFunction ? this.cellSize[0]*this.cellSize[1]*this.densityFunction(2*(x + this.cellSize[0]/2 - (BB.max.x + BB.min.x)/2)/(BB.max.x - BB.min.x), 2*(y + this.cellSize[1]/2 - (BB.max.y + BB.min.y)/2)/(BB.max.y - BB.min.y)): undefined]);
                             break;//parts can't intersect
                         };
@@ -524,36 +426,18 @@ class PhysicalObject{
         for(let c in this.cells){
             recalculatedCells.push([
                 [this.body.position.x + (this.cells[c][0][0] - this.divisionPosition[0])*Math.cos(this.body.angle - this.divisionAngle) - (this.cells[c][0][1] - this.divisionPosition[1])*Math.sin(this.body.angle - this.divisionAngle),
-                    this.body.position.y + (this.cells[c][0][0] - this.divisionPosition[0])*Math.sin(this.body.angle - this.divisionAngle) + (this.cells[c][0][1] - this.divisionPosition[1])*Math.cos(this.body.angle - this.divisionAngle)],
+                this.body.position.y + (this.cells[c][0][0] - this.divisionPosition[0])*Math.sin(this.body.angle - this.divisionAngle) + (this.cells[c][0][1] - this.divisionPosition[1])*Math.cos(this.body.angle - this.divisionAngle)],
                 [this.body.position.x + (this.cells[c][1][0] - this.divisionPosition[0])*Math.cos(this.body.angle - this.divisionAngle) - (this.cells[c][1][1] - this.divisionPosition[1])*Math.sin(this.body.angle - this.divisionAngle),
-                    this.body.position.y + (this.cells[c][1][0] - this.divisionPosition[0])*Math.sin(this.body.angle - this.divisionAngle) + (this.cells[c][1][1] - this.divisionPosition[1])*Math.cos(this.body.angle - this.divisionAngle)]
-                ,this.cells[c][2]]);
+                this.body.position.y + (this.cells[c][1][0] - this.divisionPosition[0])*Math.sin(this.body.angle - this.divisionAngle) + (this.cells[c][1][1] - this.divisionPosition[1])*Math.cos(this.body.angle - this.divisionAngle)]
+            ,this.cells[c][2]]);
         };
         return recalculatedCells;
     };//Transforms divided topology
     attachForce(force){
-        for(let i in this.forces){
-            if(this.forces[i].constructor.name === force.constructor.name){
-                if(this.forces[i].unite(force)){
-                    this.forces[i].onCreation();
-                    return;
-                };
-            };
-        };
-        this.forces.push(force);
         this.bonds.push(force.attachObject(this));
     };
     attachForceDivision(force){
         //let toAverage = [];
-        for(let i in this.forces){
-            if(this.forces[i].constructor.name === force.constructor.name){
-                if(this.forces[i].unite(force)){
-                    this.forces[i].onCreation();
-                    return;
-                };
-            };
-        };
-        this.forces.push(force);
         for(let i in this.divisionPhantom.getPhantoms()){
             let newBond = force.attachObject(this.divisionPhantom.getPhantoms()[i])
             this.bonds.push(newBond);
@@ -571,24 +455,11 @@ class PhysicalObject{
         };
     };
     detachForce(force){
-        let index = this.forces.indexOf(force);
-        if (index != -1){
-            this.forces.splice(index, 1);
-        };
-        for(let i in this.bonds){
+        for(i in this.bonds){
             if(this.bonds[i].getForce() === force){
                 this.bonds[i].delete();
             };
         };
-    };
-    getImages(force){
-        let imgs = [];
-        for(let i in this.bonds){
-            if(this.bonds[i].getForce() === force){
-                imgs.push(this.bonds[i].getSVGImage());
-            };
-        };
-        return imgs;
     };
     updateForces(){//Rewrite
         if(this.divisionPhantom !== undefined & this.divisionForceAttached){//need a boost to performance
@@ -601,12 +472,12 @@ class PhysicalObject{
         };
     };
     saveInitial(){
-        this.initialState = {
-            position: Matter.Vector.create(this.body.position.x, this.body.position.y),
-            angle: this.body.angle,
-            velocity: Matter.Body.getVelocity(this.body),
-            angularVelocity: Matter.Body.getAngularVelocity(this.body),
-        }
+      this.initialState = {
+          position: Matter.Vector.create(this.body.position.x, this.body.position.y),
+          angle: this.body.angle,
+          velocity: Matter.Body.getVelocity(this.body),
+          angularVelocity: Matter.Body.getAngularVelocity(this.body),
+      }  
     };
     returnToInitial(){
         if (this.initialState != undefined){
@@ -643,12 +514,12 @@ class PhysicalObject{
         Matter.Composite.remove(engine.world, this.body);
         Matter.Events.trigger(engine, "objectDeleted", {physicalObject: this})
     };//
-
+    
     onSelected(){
         let visualizer = this.visualizationBond.getVisualizer();
         visualizer.clearInputs();
         visualizer.addInput(
-            visualizer.getFloatInput("Масса, кг", 0, undefined, 0.01, this.body.mass, (f) => {
+            visualizer.getFloatInput("Масса", 0, undefined, 0.01, this.body.mass, (f) => {
                 for(let i in this.cells){
                     this.cells[i][2] *= f/this.body.mass
                 };
@@ -665,50 +536,6 @@ class PhysicalObject{
             visualizer.getColorInput("Цвет объекта", this.opt.color , (f) => {this.opt.color = f;this.visualizationBond.recolor(f);})
         );
         visualizer.setTitle("Редактирование свойств объекта");
-
-        if(this.forces.length > 0){
-            visualizer.addInput(
-                visualizer.getButton("Редактировать силы", ()=>{
-                    visualizer.clearPopupInputs();
-                    //Forces
-                    for(let f = 0; f < this.forces.length; f++){
-                        this.forces[f].onCreation();
-                        let ttl = $("<div></div>").attr({
-                            class: "property_menu"
-                        }).css({
-                            height: "12px",
-                            display: "flex",
-                            "flex-direction": "row",
-                            "z-index": 5
-                        }).append($("<label>" + visualizer.getTitle() + "</label>").css({
-                            "font-size": "10px",
-                            "align-self": "center",
-                            "margin-left": "3px"
-                        }))
-                        visualizer.addPopupInput(ttl);
-                        let objs = visualizer.getInputs().detach()
-                        visualizer.addPopupInput(objs);
-                        let imgs = this.getImages(this.forces[f]);
-                        console.log(imgs[0].attr("stroke"));
-                        let clr = visualizer.getColorInput("Цвет обозначения силы", imgs[0].attr("stroke"), (color) => {
-                            for(let i in imgs){
-                                imgs[i].attr({"stroke": color, "fill": color});
-                                imgs[i].marker('end', 10, 10, function(add) {
-                                    add.path('M 0 0 L 10 5 L 0 10 z').fill(color).stroke({ width: 1});
-                                });
-                            };
-                        });
-                        visualizer.addPopupInput(clr);
-                        let btn = visualizer.getSmallButton("Удалить силу", ()=>{this.detachForce(this.forces[f]);btn.remove();ttl.remove();objs.remove();clr.remove()});
-                        visualizer.addPopupInput(btn);
-                    };
-                    //End of discussing forcers
-                    visualizer.addPopupInput(visualizer.addPopupInput(visualizer.getButton("Закрыть окно сил", ()=>{visualizer.closePopup();visualizer.clearPopupInputs();})));
-                    visualizer.openPopup();
-                    this.onSelected();
-                })
-            );
-        };
     };
 
 };
@@ -751,7 +578,7 @@ Matter.Composite.add(engine.world, Matter.Constraint.create({
 */
 let btnlist = document.getElementsByClassName("actbtn");
 
-window.paused = true;
+window.paused = false;
 window.pause = () => {
     window.paused = true;
     clearInterval(window.simulationLoop)
@@ -765,7 +592,7 @@ window.play = () => {//FIX SIMULATION LOOP
         var dt = now - lastUpdate;
         lastUpdate = now;
         Matter.Engine.update(engine, dt/1000);
-    }, 0);
+    }, 0); 
 }
 
 for (let btn of btnlist){
@@ -787,18 +614,18 @@ let sel_plus = new SelectionTool(renderSVG);
 let sel_minus = new SelectionTool(renderSVG);
 let spr = new SpringTool(renderSVG);
 sel_minus.selectionMode = -1;
-let cr_polygon = new PolygonCreationTool(renderSVG);
+//cr_polygon = new PolygonCreationTool(renderSVG);
 //Creating tool interface
 const tagDataToolNameReferance = {
     "navigation": [nav],
     "selection": [sel_plus, sel_minus],
-    "creation": [cr_polygon],
+    //"creation": [cr_polygon]
     "spring": [spr]
 };
 const selectedTools = {
     "navigation": 0,
     "selection": 0,
-    "creation": 0,
+    //"creation": 0
     "spring": 0
 };
 const BRTolerance = [5, 5];//Determines how much space is provided to multitool selection in bottom right corner
@@ -809,7 +636,6 @@ toolButtons.css({
 });
 for(let i = 0; i < toolButtons.length; i++){
     let btn = toolButtons.eq(i);
-
     let tools = tagDataToolNameReferance[btn.attr("data-tool")];
     if (tools === undefined || tools.length === 0){
         continue;
@@ -895,34 +721,11 @@ for(let i = 0; i < toolButtons.length; i++){
 };
 
 nav.activate();
-//cr_polygon.activate();
 
-//examples
-let exampleButtons = $(".menu_button");
-
-for(let i = 0; i < exampleButtons.length; i++){
-    let btn = exampleButtons.eq(i);
-    console.log("meow");
-    btn.on("mouseup", (e)=>{
-        console.log(btn.attr("id"));
-        Matter.Engine.clear(engine);
-        renderSVG.clear();
-        for (let i in physicalObjects) {
-            physicalObjects[i].delete();
-        }
-        if (btn.attr("id") == "exmp0") {
-            examplePendulum(renderSVG);
-        } else if (btn.attr("id") == "exmp3") {
-            exampleEllipse(renderSVG);
-        }
-    })
-};
-
-//var lastUpdate = Date.now();
+var lastUpdate = Date.now();
 window.simulationLoop = setInterval(() => {
-    //let now = Date.now();
-    let dt = 0.005;//now - lastUpdate;
-    //lastUpdate = now;
-    delay(1000);
-    Matter.Engine.update(engine, dt);
+    let now = Date.now();
+    let dt = now - lastUpdate;
+    lastUpdate = now;
+    Matter.Engine.update(engine, dt/1000);
 }, 0);

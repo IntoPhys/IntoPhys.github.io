@@ -703,6 +703,7 @@ class PhysicalObject{
                         visualizer.addPopupInput(btn);
                     };
                     //End of discussing forcers
+                    visualizer.addPopupInput(visualizer.getFloatInput("Размер сил", 0.1, 10, 0.1, visualizer.forceVisualsScale, (f) => {visualizer.forceVisualsScale = f}));
                     visualizer.addPopupInput(visualizer.addPopupInput(visualizer.getButton("Закрыть окно сил", ()=>{visualizer.closePopup();visualizer.clearPopupInputs();})));
                     visualizer.openPopup();
                     this.onSelected();
@@ -732,14 +733,6 @@ var renderSVG = SVGRender.create({
 });
 
 var objectMananger = new ObjectMannager(engine);
-
-
-let a = new PhysicalObject(0, 0, {type: "polygon", sides:7, radius: 80});
-let b = new PhysicalObject(300, 300, {type: "polygon", sides:3, radius: 20});
-let c = new PhysicalObject(300, -300, {type: "polygon", sides:90, radius: 60});
-a.addToEngine(engine);
-b.addToEngine(engine);
-c.addToEngine(engine);
 
 /*
 Matter.Composite.add(engine.world, Matter.Constraint.create({
@@ -925,4 +918,4 @@ window.simulationLoop = setInterval(() => {
     let dt = 0.005;//now - lastUpdate;
     //lastUpdate = now;
     Matter.Engine.update(engine, dt);
-}, 0);
+}, 5);

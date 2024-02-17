@@ -402,7 +402,7 @@ class SpringTool extends Tool{
         this.firstPointCreated = false;
     };
     getIcon(){
-        return "./icons/tools/unknown.png";//TODO
+        return "./icons/tools/spring.png";//TODO
     };
     getDescription(){
         return "Создаёт пружину между двумя объектами";
@@ -762,7 +762,7 @@ class PolygonCreationTool extends Tool{
         this.SVGMouse.hide();
     };
     getIcon(){
-        return "./icons/tools/unknown.png";//TODO
+        return "./icons/tools/creation.png";//TODO
     };
     getDescription(){
         return "Создание объекта по точкам";

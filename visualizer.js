@@ -822,8 +822,8 @@ class SVGRender{//ADD CULLING
             this.forceBonds[i].getSVGImage().attr({
                 x1:(force[0].x - this.pointTopLeft[0])*this.scale,
                 y1:(force[0].y - this.pointTopLeft[1])*this.scale,
-                x2:(force[0].x + this.forceVisualsScale*Math.log(mod+1)*(force[1].x/mod) - this.pointTopLeft[0])*this.scale,
-                y2:(force[0].y + this.forceVisualsScale*Math.log(mod+1)*(force[1].y/mod) - this.pointTopLeft[1])*this.scale
+                x2:(force[0].x + this.forceVisualsScale*Math.log(mod+1)*(force[1].x/(mod + 1)) - this.pointTopLeft[0])*this.scale,
+                y2:(force[0].y + this.forceVisualsScale*Math.log(mod+1)*(force[1].y/(mod + 1)) - this.pointTopLeft[1])*this.scale
             });
         };
     };
